@@ -206,7 +206,8 @@ async def save_video(v: UploadFile | None, prefix: str) -> str | None:
 
     ext = os.path.splitext(v.filename)[1].lower()
     if ext not in ALLOWED_VIDEO_EXTENSIONS:
-        raise HTTPException(400, f"Video formati qo'llab-quvvatlanmaydi: {ext or 'noma\u2019lum'}")
+        unknown = "noma\u2019lum"
+        raise HTTPException(400, f"Video formati qo'llab-quvvatlanmaydi: {ext or unknown}")
 
     if v.content_type and v.content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
         raise HTTPException(400, f"Video turi qo'llab-quvvatlanmaydi: {v.content_type}")

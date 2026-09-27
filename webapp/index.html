@@ -30,6 +30,26 @@
   @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .fade{animation:fadeUp .35s cubic-bezier(.2,.7,.3,1) both}
 
+  /* ---------- DEBUG PANEL ---------- */
+  #__debug {
+    position:fixed;left:0;right:0;top:0;max-height:45vh;overflow:auto;
+    background:#000;color:#0f0;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;
+    padding:10px 12px;z-index:99999;white-space:pre-wrap;word-break:break-all;
+    border-bottom:2px solid #0f0;display:none;
+  }
+  #__debug.show{display:block}
+  #__debug .err{color:#ff5555}
+  #__debug .warn{color:#ffb020}
+  #__debug .ok{color:#4ade80}
+  #__debug-toggle {
+    position:fixed;right:8px;top:8px;z-index:100000;
+    background:rgba(0,0,0,.85);color:#0f0;border:1px solid #0f0;
+    border-radius:8px;padding:6px 10px;font:11px ui-monospace,monospace;
+    display:none;
+  }
+  #__debug-toggle.show{display:block}
+
+  /* ---------- ASOSIY ---------- */
   .top{margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
   .top .greet{font-size:24px;font-weight:700;letter-spacing:-.02em}
   .top .sub{font-size:14px;color:var(--muted);margin-top:4px}
@@ -222,6 +242,9 @@
 </style>
 </head>
 <body>
+  <div id="__debug"></div>
+  <button id="__debug-toggle" type="button">🔧</button>
+
   <div id="app">
     <div class="skel"></div><div class="skel"></div><div class="skel"></div>
   </div>
@@ -233,53 +256,112 @@
   </div>
 
 <script>
-  // ================= TELEGRAM =================
+  // ============================================================
+  // DEBUG PANEL
+  // ============================================================
+  const dbgEl = document.getElementById("__debug");
+  const dbgToggle = document.getElementById("__debug-toggle");
+  let dbgLines = [];
+
+  function dbg(msg, cls = "") {
+    const line = (cls ? `<span class="${cls}">` : "") + String(msg) + (cls ? "</span>" : "");
+    dbgLines.push(line);
+    dbgEl.innerHTML = dbgLines.join("\n");
+    dbgEl.scrollTop = dbgEl.scrollHeight;
+    // Konsolga ham yozamiz
+    console.log("[DBG]", msg);
+  }
+
+  function showDebug(show = true) {
+    dbgEl.classList.toggle("show", show);
+    dbgToggle.classList.toggle("show", true);
+  }
+  dbgToggle.addEventListener("click", () => dbgEl.classList.toggle("show"));
+
+  window.addEventListener("error", (e) => dbg("❌ JS XATO: " + e.message + " @ " + (e.filename || "?"), "err"));
+  window.addEventListener("unhandledrejection", (e) => dbg("❌ Promise xato: " + (e.reason?.message || e.reason), "err"));
+
+  // ============================================================
+  // TELEGRAM
+  // ============================================================
+  dbg("=== SKUTER WEBAPP DEBUG ===");
+  dbg("Sahifa: " + window.location.href);
+  dbg("Origin: " + window.location.origin);
+  dbg("UA: " + navigator.userAgent.slice(0, 120));
+
   const tg = window.Telegram?.WebApp;
-  tg?.ready();
-  tg?.expand();
-  tg?.setHeaderColor?.("#0e1118");
-  tg?.setBackgroundColor?.("#0e1118");
+  dbg("window.Telegram bormi: " + (window.Telegram ? "HA" : "YO'Q"), window.Telegram ? "ok" : "err");
+  dbg("tg.WebApp bormi: " + (tg ? "HA" : "YO'Q"), tg ? "ok" : "err");
 
-  function getInitData() {
+  if (tg) {
+    dbg("tg.version: " + (tg.version || "—"));
+    dbg("tg.platform: " + (tg.platform || "—"));
+    dbg("tg.colorScheme: " + (tg.colorScheme || "—"));
+    try { tg.ready(); dbg("✅ tg.ready() chaqirildi", "ok"); } catch (e) { dbg("ready xatosi: " + e.message, "err"); }
+    try { tg.expand(); dbg("✅ tg.expand() chaqirildi", "ok"); } catch (e) { dbg("expand xatosi: " + e.message, "err"); }
+    try { tg.setHeaderColor?.("#0e1118"); } catch (e) {}
+    try { tg.setBackgroundColor?.("#0e1118"); } catch (e) {}
+  }
+
+  // ============================================================
+  // INIT DATA
+  // ============================================================
+  function tryParse(str) {
+    if (!str) return "";
     try {
-      // 1-usul: rasmiy kutubxona (eng ishonchli)
-      if (tg?.initData) return tg.initData;
-
-    // 2-usul: URL'dan zaxira o'qish (ba'zi Desktop versiyalari uchun)
-    // DIQQAT: URLSearchParams.get() allaqachon decode qiladi —
-    // ustiga decodeURIComponent qo'llash mumkin emas (URIError beradi).
-      const tryParse = (str) => {
-        if (!str) return "";
-        try {
-          const p = new URLSearchParams(str);
-          return p.get("tgWebAppData") || "";
-        } catch (err) {
-          console.warn("initData parse xatosi:", err);
-          return "";
-        }
-      };
-      return tryParse(window.location.hash.replace(/^#/, ""))
-          || tryParse(window.location.search.replace(/^\?/, ""));
-    } catch (e) {
-      console.error("getInitData xatosi:", e);
+      const p = new URLSearchParams(str);
+      return p.get("tgWebAppData") || "";
+    } catch (err) {
+      dbg("parse xatosi: " + err.message, "warn");
       return "";
     }
   }
 
-  const initData = getInitData();
+  function getInitData() {
+    // 1-usul: rasmiy kutubxona
+    if (tg?.initData) {
+      dbg("✅ tg.initData BOR, uzunlik: " + tg.initData.length, "ok");
+      return tg.initData;
+    }
+    dbg("⚠️ tg.initData BO'SH yoki mavjud emas", "warn");
+
+    // 2-usul: URL'dan o'qish (ba'zi Desktop versiyalar uchun)
+    const fromHash = tryParse(window.location.hash.replace(/^#/, ""));
+    const fromSearch = tryParse(window.location.search.replace(/^\?/, ""));
+    dbg("hash'dan o'qildi: " + fromHash.length + " belgi");
+    dbg("search'dan o'qildi: " + fromSearch.length + " belgi");
+
+    return fromHash || fromSearch;
+  }
+
+  let initData = getInitData();
+  dbg("Yakuniy initData uzunligi: " + initData.length, initData.length > 0 ? "ok" : "err");
+
+  // Agar initData yo'q bo'lsa, Telegram ichidami yo'qmi aniqlaymiz
+  if (!initData) {
+    const insideTg = !!(window.Telegram?.WebApp?.initDataUnsafe?.user || window.Telegram?.WebApp?.platform && window.Telegram.WebApp.platform !== "unknown");
+    dbg("Telegram ichidamizmi? " + (insideTg ? "HA" : "YO'Q yoki aniqlanmadi"), insideTg ? "warn" : "err");
+    if (insideTg) {
+      dbg("→ Agar Telegram ichida bo'lsak, BotFather'da Menu Button URL ni tekshiring!", "warn");
+      dbg("→ WEBAPP_URL bilan aynan bir xil bo'lishi shart.", "warn");
+    }
+    showDebug(true);
+  }
+
+  // Admin token (parol orqali kirish uchun)
   let adminToken = sessionStorage.getItem("admin_token") || "";
   const app = document.getElementById("app");
   const tabbar = document.getElementById("tabbar");
   const ORIGIN = window.location.origin;
 
   let currentTab = "dash";
-  let currentFilter = "";     // "" = faol+kutilmoqda
+  let currentFilter = "";
   let currentSearch = "";
 
   const fmt = n => Math.round(Number(n) || 0).toLocaleString("uz-UZ");
   const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
-  const haptic = (t="success") => tg?.HapticFeedback?.notificationOccurred?.(t);
-  const hapticTap = () => tg?.HapticFeedback?.impactOccurred?.("light");
+  const haptic = (t = "success") => { try { tg?.HapticFeedback?.notificationOccurred?.(t); } catch (e) {} };
+  const hapticTap = () => { try { tg?.HapticFeedback?.impactOccurred?.("light"); } catch (e) {} };
 
   const videoUrl = (u) => {
     if (!u) return null;
@@ -296,7 +378,9 @@
     setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 300); }, 2600);
   }
 
-  // ================= API =================
+  // ============================================================
+  // API
+  // ============================================================
   async function api(path, opts = {}) {
     const headers = opts.headers || {};
     if (adminToken) headers["X-Admin-Token"] = adminToken;
@@ -309,43 +393,66 @@
     return res.json();
   }
 
-  // ================= BOOT =================
+  // ============================================================
+  // BOOT
+  // ============================================================
   async function boot() {
+    dbg("--------- BOOT ---------");
+    dbg("initData uzunligi: " + initData.length);
+    dbg("adminToken: " + (adminToken ? "bor" : "yo'q"));
+
+    // Hech narsa yo'q bo'lsa — login
     if (!initData && !adminToken) {
+      dbg("→ Login sahifasi (initData ham, token ham yo'q)", "warn");
+      showDebug(true); // foydalanuvchi nima bo'layotganini ko'rsin
       renderLogin();
       return;
     }
 
     try {
-      const who = await api("/api/whoami?init_data=" + encodeURIComponent(initData));
+      const url = "/api/whoami?init_data=" + encodeURIComponent(initData);
+      dbg("→ whoami chaqirilmoqda...");
+      const res = await fetch(url, {
+        headers: adminToken ? { "X-Admin-Token": adminToken } : {}
+      });
+      dbg("← whoami status: " + res.status, res.ok ? "ok" : "err");
+      const who = await res.json();
+      dbg("← whoami javob: " + JSON.stringify(who));
 
       if (who.is_admin) {
+        dbg("→ ADMIN paneli ochilmoqda", "ok");
+        showDebug(false); // muvaffaqiyatli bo'lsa panelni yashiramiz
         tabbar.classList.remove("hidden");
         setActiveTab("dash");
         return;
       }
 
       if (!initData) {
-        // adminToken bor lekin sessiya eskirgan
         sessionStorage.removeItem("admin_token");
         adminToken = "";
         renderLogin("Sessiya tugagan. Qayta kiring.");
         return;
       }
 
+      dbg("→ Mijoz kabineti ochilmoqda");
+      showDebug(false);
       await renderRenter(who.name || "");
     } catch (e) {
+      dbg("❌ boot xatosi: " + e.message, "err");
+      showDebug(true);
       app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
     }
   }
 
-  // ================= PAROL ORQALI KIRISH (Telegram tashqarisida) =================
+  // ============================================================
+  // LOGIN (parol orqali)
+  // ============================================================
   function renderLogin(notice = "") {
     app.innerHTML = `
       <div class="login-box fade">
         <div class="top" style="display:block;text-align:center">
           <div class="greet">🛴 Skuter Admin</div>
-          <div class="sub">Telegram tashqarisida kirish uchun parol kiriting</div>
+          <div class="sub">Kirish uchun parol kiriting</div>
         </div>
         ${notice ? `<p class="notice" style="text-align:center;color:var(--amber)">${esc(notice)}</p>` : ""}
         <form id="login-form">
@@ -367,6 +474,7 @@
         adminToken = res.token;
         sessionStorage.setItem("admin_token", adminToken);
         haptic("success");
+        showDebug(false);
         tabbar.classList.remove("hidden");
         setActiveTab("dash");
       } catch (e) {
@@ -385,7 +493,9 @@
     renderLogin("Chiqdingiz.");
   }
 
-  // ================= ADMIN TABS =================
+  // ============================================================
+  // ADMIN TABS
+  // ============================================================
   function setActiveTab(tab) {
     hapticTap();
     currentTab = tab;
@@ -401,7 +511,9 @@
     if (btn) setActiveTab(btn.dataset.tab);
   });
 
-  // ================= ADMIN: DASHBOARD =================
+  // ============================================================
+  // ADMIN: DASHBOARD
+  // ============================================================
   async function renderDashboard(opts = {}) {
     const isHistory = opts.status === "tugagan";
     currentFilter = isHistory ? "tugagan" : (opts.status ?? currentFilter);
@@ -615,7 +727,6 @@
       </div>`;
   }
 
-  // Bitta delegatsiya qilingan click handler — barcha qator ichidagi tugmalarni boshqaradi
   function bindRowActions() {
     document.querySelectorAll(".rlist").forEach(list => {
       list.addEventListener("click", onRowClick);
@@ -692,7 +803,9 @@
     }
   }
 
-  // ================= ADMIN: YANGI MIJOZ =================
+  // ============================================================
+  // ADMIN: YANGI MIJOZ
+  // ============================================================
   function renderNewClientForm() {
     app.innerHTML = `
       <div class="top fade">
@@ -783,7 +896,9 @@
     }
   }
 
-  // ================= USER: KABINET =================
+  // ============================================================
+  // USER: KABINET
+  // ============================================================
   async function renderRenter(fallbackName = "") {
     app.innerHTML = `<div class="skel"></div><div class="skel"></div>`;
 
@@ -869,10 +984,6 @@
           <div class="k">To'langan kunlar</div>
           <div class="v">${d.paid_days} kun</div>
         </div>
-        <div class="stat-card">
-          <div class="k">Ijarada</div>
-          <div class="v">${d.days_since_start ?? "—"} kun</div>
-        </div>
         ${hasDebt ? `
         <div class="stat-card">
           <div class="k">Qarz kunlari</div>
@@ -902,7 +1013,9 @@
     `;
   }
 
-  // ================= START =================
+  // ============================================================
+  // START
+  // ============================================================
   boot();
 </script>
 </body>

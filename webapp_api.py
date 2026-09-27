@@ -3,16 +3,20 @@ import hmac
 import json
 import logging
 import os
+import secrets
 import shutil
+import time
 from datetime import date, datetime, timedelta
 from urllib.parse import parse_qsl
 
 import httpx
-from fastapi import FastAPI, HTTPException, Form, UploadFile, File
+from fastapi import FastAPI, HTTPException, Form, UploadFile, File, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import BOT_TOKEN, ADMIN_IDS, BOT_USERNAME, UPLOAD_DIR
+from config import (
+    BOT_TOKEN, ADMIN_IDS, ADMIN_PASSWORD, BOT_USERNAME, UPLOAD_DIR
+)
 from database import SessionLocal, init_db
 from models import Rental, Payment
 
@@ -28,8 +32,32 @@ app.add_middleware(
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# ==================== PAROL SESSIYALARI ====================
+# Oddiy xotiradagi token ombori. Render qayta ishga tushsa — tozalanadi.
+# Kichik loyiha uchun yetarli. Katta loyiha uchun Redis ishlatish kerak.
+ADMIN_SESSIONS = {}  # {token: {"created": timestamp}}
 
-# ==================== AUTH ====================
+
+def create_admin_session() -> str:
+    token = secrets.token_urlsafe(32)
+    ADMIN_SESSIONS[token] = {"created": time.time()}
+    return token
+
+
+def check_admin_session(token: str) -> bool:
+    """Token 24 soat amal qiladi."""
+    if not token:
+        return False
+    data = ADMIN_SESSIONS.get(token)
+    if not data:
+        return False
+    if time.time() - data["created"] > 86400:
+        ADMIN_SESSIONS.pop(token, None)
+        return False
+    return True
+
+
+# ==================== TELEGRAM AUTH ====================
 def check_telegram_auth(init_data: str) -> dict:
     if not init_data:
         log.warning("❌ initData bo'sh keldi")
@@ -50,7 +78,7 @@ def check_telegram_auth(init_data: str) -> dict:
     computed = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(computed, received_hash):
-        log.warning("❌ initData imzo noto'g'ri (BOT_TOKEN mos emas?)")
+        log.warning("❌ initData imzo noto'g'ri")
         raise HTTPException(401, "Imzo noto'g'ri")
 
     auth_date = int(parsed.get("auth_date", 0))
@@ -58,22 +86,39 @@ def check_telegram_auth(init_data: str) -> dict:
         raise HTTPException(401, "initData eskirgan")
 
     user = json.loads(parsed.get("user", "{}"))
-
-    # DEBUG log
-    uid = user.get("id")
-    log.info(f"👤 Foydalanuvchi: {uid} ({user.get('first_name', '')})")
-    log.info(f"🛡 Adminlar: {ADMIN_IDS}")
-    log.info(f"✅ Adminmi: {uid in ADMIN_IDS}")
-
+    log.info(f"👤 Foydalanuvchi: {user.get('id')} ({user.get('first_name', '')})")
     return user
 
 
-def require_admin(init_data: str) -> dict:
-    user = check_telegram_auth(init_data)
-    if user.get("id") not in ADMIN_IDS:
-        log.warning(f"🚫 Ruxsat yo'q: {user.get('id')} adminlar ro'yxatida emas")
-        raise HTTPException(403, "Faqat admin uchun")
-    return user
+def is_admin_by_telegram(init_data: str) -> bool:
+    """initData orqali admin ekanligini tekshiradi."""
+    try:
+        user = check_telegram_auth(init_data)
+        return user.get("id") in ADMIN_IDS
+    except Exception:
+        return False
+
+
+def require_admin_api(
+    init_data: str = "",
+    x_admin_token: str = "",
+) -> str:
+    """
+    Ikkita usuldan birini qabul qiladi:
+    1. Telegram initData (agar ADMIN_IDS da bo'lsa)
+    2. X-Admin-Token sarlavhasi (parol orqali kirgan bo'lsa)
+    """
+    # Usul 1: parol tokeni
+    if x_admin_token and check_admin_session(x_admin_token):
+        return "session"
+
+    # Usul 2: Telegram initData
+    if init_data:
+        user = check_telegram_auth(init_data)
+        if user.get("id") in ADMIN_IDS:
+            return "telegram"
+
+    raise HTTPException(403, "Faqat admin uchun")
 
 
 # ==================== XABAR ====================
@@ -128,7 +173,7 @@ def serialize_payment(p: Payment) -> dict:
     }
 
 
-# ==================== API ====================
+# ==================== HEALTH ====================
 @app.get("/api/health")
 def health():
     return {
@@ -138,16 +183,56 @@ def health():
     }
 
 
+# ==================== WHOAMI ====================
 @app.get("/api/whoami")
-def whoami(init_data: str):
-    user = check_telegram_auth(init_data)
-    return {
-        "is_admin": user.get("id") in ADMIN_IDS,
-        "name": user.get("first_name", ""),
-        "user_id": user.get("id"),
-    }
+def whoami(init_data: str = "", x_admin_token: str = Header("")):
+    # Parol orqali kirilgan bo'lsa
+    if x_admin_token and check_admin_session(x_admin_token):
+        return {
+            "is_admin": True,
+            "via": "password",
+            "name": "Admin",
+            "user_id": None,
+        }
+
+    # Telegram orqali
+    if not init_data:
+        return {"is_admin": False, "via": "none", "name": "", "user_id": None}
+
+    try:
+        user = check_telegram_auth(init_data)
+        return {
+            "is_admin": user.get("id") in ADMIN_IDS,
+            "via": "telegram",
+            "name": user.get("first_name", ""),
+            "user_id": user.get("id"),
+        }
+    except HTTPException:
+        return {"is_admin": False, "via": "none", "name": "", "user_id": None}
 
 
+# ==================== PAROL ORQALI KIRISH ====================
+@app.post("/api/admin/login")
+def admin_login(password: str = Form(...)):
+    if not ADMIN_PASSWORD:
+        raise HTTPException(500, "Admin parol o'rnatilmagan")
+    if password != ADMIN_PASSWORD:
+        log.warning(f"❌ Noto'g'ri parol kiritildi")
+        raise HTTPException(401, "Parol noto'g'ri")
+
+    token = create_admin_session()
+    log.info(f"🔑 Admin parol orqali kirdi")
+    return {"ok": True, "token": token}
+
+
+@app.post("/api/admin/logout")
+def admin_logout(x_admin_token: str = Header("")):
+    if x_admin_token:
+        ADMIN_SESSIONS.pop(x_admin_token, None)
+    return {"ok": True}
+
+
+# ==================== USER: KABINET ====================
 @app.get("/api/me")
 def get_me(init_data: str):
     user = check_telegram_auth(init_data)
@@ -165,10 +250,13 @@ def get_me(init_data: str):
         db.close()
 
 
-# ==================== ADMIN ====================
+# ==================== ADMIN ENDPOINTLAR ====================
 @app.get("/api/admin/rentals")
-def admin_rentals(init_data: str):
-    require_admin(init_data)
+def admin_rentals(
+    init_data: str = "",
+    x_admin_token: str = Header(""),
+):
+    require_admin_api(init_data, x_admin_token)
     db = SessionLocal()
     try:
         rentals = (
@@ -183,8 +271,12 @@ def admin_rentals(init_data: str):
 
 
 @app.get("/api/admin/rentals/{rental_id}")
-def admin_rental_detail(rental_id: int, init_data: str):
-    require_admin(init_data)
+def admin_rental_detail(
+    rental_id: int,
+    init_data: str = "",
+    x_admin_token: str = Header(""),
+):
+    require_admin_api(init_data, x_admin_token)
     db = SessionLocal()
     try:
         rental = db.query(Rental).filter(Rental.id == rental_id).first()
@@ -199,7 +291,7 @@ def admin_rental_detail(rental_id: int, init_data: str):
 
 @app.post("/api/admin/rentals")
 async def create_rental(
-    init_data: str = Form(...),
+    init_data: str = Form(""),
     full_name: str = Form(...),
     phone: str = Form(...),
     passport: str = Form(""),
@@ -209,8 +301,9 @@ async def create_rental(
     notes: str = Form(""),
     video_selfie: UploadFile = File(None),
     video_scooter: UploadFile = File(None),
+    x_admin_token: str = Header(""),
 ):
-    require_admin(init_data)
+    require_admin_api(init_data, x_admin_token)
     db = SessionLocal()
     try:
         def save_video(v: UploadFile, prefix: str):
@@ -246,13 +339,14 @@ async def create_rental(
 
 @app.post("/api/admin/payments")
 async def create_payment(
-    init_data: str = Form(...),
+    init_data: str = Form(""),
     rental_id: int = Form(...),
     amount: float = Form(...),
     method: str = Form("naqd"),
     note: str = Form(""),
+    x_admin_token: str = Header(""),
 ):
-    require_admin(init_data)
+    require_admin_api(init_data, x_admin_token)
     if amount <= 0:
         raise HTTPException(400, "Summa musbat bo'lishi kerak")
 
@@ -294,8 +388,12 @@ async def create_payment(
 
 
 @app.post("/api/admin/rentals/{rental_id}/finish")
-def finish_rental(rental_id: int, init_data: str = Form(...)):
-    require_admin(init_data)
+def finish_rental(
+    rental_id: int,
+    init_data: str = Form(""),
+    x_admin_token: str = Header(""),
+):
+    require_admin_api(init_data, x_admin_token)
     db = SessionLocal()
     try:
         rental = db.query(Rental).filter(Rental.id == rental_id).first()

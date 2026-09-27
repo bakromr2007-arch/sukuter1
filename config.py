@@ -6,15 +6,21 @@ noto'g'ri sozlash ilova ishga tushmasdan oldin aniq xato bilan to'xtaydi.
 import logging
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# MUHIM: barcha fayl yo'llari loyiha papkasiga nisbatan absolyut bo'lishi kerak,
+# aks holda uvicorn boshqa papkadan ishga tushirilsa "webapp papkasi topilmadi"
+# xatosi chiqadi.
+BASE_DIR = Path(__file__).resolve().parent
+
 log = logging.getLogger("config")
 
 
-def _fail(msg: str) -> "NoReturn":
+def _fail(msg: str):
     # Ilova buzilgan holatda jimgina ishga tushmasligi kerak — aniq xato bilan to'xtaydi.
     print(f"\n❌ KONFIGURATSIYA XATOSI: {msg}\n", file=sys.stderr)
     sys.exit(1)
@@ -80,8 +86,26 @@ if not WEBAPP_URL.startswith("https://"):
     _fail("WEBAPP_URL https:// bilan boshlanishi shart (Telegram WebApp buni talab qiladi)!")
 
 # ---------- Database ----------
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/scooter.db")
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+# Nisbiy SQLite yo'lini absolyut qilamiz — CWD muammosini oldini oladi.
+_db_url_env = os.getenv("DATABASE_URL", "").strip()
+if not _db_url_env:
+    DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'scooter.db'}"
+elif _db_url_env.startswith("sqlite:///") and not _db_url_env.startswith("sqlite:////"):
+    # sqlite:///./data/scooter.db → absolyut
+    rel = _db_url_env[len("sqlite:///"):]
+    if not os.path.isabs(rel):
+        DATABASE_URL = f"sqlite:///{BASE_DIR / rel}"
+    else:
+        DATABASE_URL = _db_url_env
+else:
+    DATABASE_URL = _db_url_env
+
+# ---------- Yuklama (video) ----------
+_upload_env = os.getenv("UPLOAD_DIR", "").strip()
+if _upload_env:
+    UPLOAD_DIR = _upload_env if os.path.isabs(_upload_env) else str(BASE_DIR / _upload_env)
+else:
+    UPLOAD_DIR = str(BASE_DIR / "uploads")
 
 # ---------- Yuklama (video) cheklovlari ----------
 MAX_UPLOAD_MB = _optional_int("MAX_UPLOAD_MB", 50)
@@ -101,7 +125,6 @@ LOGIN_MAX_ATTEMPTS = _optional_int("LOGIN_MAX_ATTEMPTS", 5)
 LOGIN_LOCKOUT_SECONDS = _optional_int("LOGIN_LOCKOUT_SECONDS", 300)
 
 # ---------- CORS ----------
-# Bo'sh bo'lsa — hamma joyga ruxsat (dev uchun qulay, prodda WEBAPP_URL bilan cheklash tavsiya etiladi)
 _cors_raw = os.getenv("CORS_ORIGINS", "").strip()
 CORS_ORIGINS = [o.strip() for o in _cors_raw.split(",") if o.strip()] or ["*"]
 

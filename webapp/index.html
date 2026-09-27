@@ -241,18 +241,29 @@
   tg?.setBackgroundColor?.("#0e1118");
 
   function getInitData() {
-    if (tg?.initData) return tg.initData;
-    // Ba'zi Telegram versiyalarida (aniqlangan: Desktop va ba'zi mobil
-    // clientlar) kutubxona initData'ni o'z vaqtida to'ldirmaydi —
-    // shuning uchun URL'dagi tgWebAppData'ni to'g'ridan-to'g'ri o'qiymiz.
-    const tryParse = (str) => {
-      if (!str) return "";
-      const p = new URLSearchParams(str);
-      const raw = p.get("tgWebAppData");
-      return raw ? decodeURIComponent(raw) : "";
-    };
-    return tryParse(window.location.hash.replace(/^#/, ""))
-        || tryParse(window.location.search.replace(/^\?/, ""));
+    try {
+      // 1-usul: rasmiy kutubxona (eng ishonchli)
+      if (tg?.initData) return tg.initData;
+
+    // 2-usul: URL'dan zaxira o'qish (ba'zi Desktop versiyalari uchun)
+    // DIQQAT: URLSearchParams.get() allaqachon decode qiladi —
+    // ustiga decodeURIComponent qo'llash mumkin emas (URIError beradi).
+      const tryParse = (str) => {
+        if (!str) return "";
+        try {
+          const p = new URLSearchParams(str);
+          return p.get("tgWebAppData") || "";
+        } catch (err) {
+          console.warn("initData parse xatosi:", err);
+          return "";
+        }
+      };
+      return tryParse(window.location.hash.replace(/^#/, ""))
+          || tryParse(window.location.search.replace(/^\?/, ""));
+    } catch (e) {
+      console.error("getInitData xatosi:", e);
+      return "";
+    }
   }
 
   const initData = getInitData();

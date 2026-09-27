@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import logging
 import os
 import shutil
 from datetime import date, datetime, timedelta
@@ -11,9 +12,11 @@ from fastapi import FastAPI, HTTPException, Form, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import BOT_TOKEN, ADMIN_ID, BOT_USERNAME, UPLOAD_DIR
+from config import BOT_TOKEN, ADMIN_IDS, BOT_USERNAME, UPLOAD_DIR
 from database import SessionLocal, init_db
 from models import Rental, Payment
+
+log = logging.getLogger("webapp")
 
 app = FastAPI(title="Skuter Kabinet")
 app.add_middleware(
@@ -29,10 +32,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # ==================== AUTH ====================
 def check_telegram_auth(init_data: str) -> dict:
     if not init_data:
+        log.warning("❌ initData bo'sh keldi")
         raise HTTPException(401, "initData bo'sh")
+
     try:
         parsed = dict(parse_qsl(init_data, strict_parsing=True))
-    except Exception:
+    except Exception as e:
+        log.warning(f"❌ initData parse xato: {e}")
         raise HTTPException(401, "initData formati noto'g'ri")
 
     received_hash = parsed.pop("hash", None)
@@ -44,23 +50,33 @@ def check_telegram_auth(init_data: str) -> dict:
     computed = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(computed, received_hash):
+        log.warning("❌ initData imzo noto'g'ri (BOT_TOKEN mos emas?)")
         raise HTTPException(401, "Imzo noto'g'ri")
 
     auth_date = int(parsed.get("auth_date", 0))
     if (datetime.utcnow().timestamp() - auth_date) > 86400:
         raise HTTPException(401, "initData eskirgan")
 
-    return json.loads(parsed.get("user", "{}"))
+    user = json.loads(parsed.get("user", "{}"))
+
+    # DEBUG log
+    uid = user.get("id")
+    log.info(f"👤 Foydalanuvchi: {uid} ({user.get('first_name', '')})")
+    log.info(f"🛡 Adminlar: {ADMIN_IDS}")
+    log.info(f"✅ Adminmi: {uid in ADMIN_IDS}")
+
+    return user
 
 
 def require_admin(init_data: str) -> dict:
     user = check_telegram_auth(init_data)
-    if user.get("id") != ADMIN_ID:
+    if user.get("id") not in ADMIN_IDS:
+        log.warning(f"🚫 Ruxsat yo'q: {user.get('id')} adminlar ro'yxatida emas")
         raise HTTPException(403, "Faqat admin uchun")
     return user
 
 
-# ==================== TELEGRAM XABAR ====================
+# ==================== XABAR ====================
 def notify_user(chat_id: int, text: str):
     try:
         httpx.post(
@@ -68,8 +84,8 @@ def notify_user(chat_id: int, text: str):
             json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
             timeout=5,
         )
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning(f"Xabar yuborilmadi: {e}")
 
 
 # ==================== SERIALIZER ====================
@@ -85,7 +101,6 @@ def serialize_rental(r: Rental) -> dict:
         "status": r.status,
         "start_date": r.start_date.strftime("%d.%m.%Y") if r.start_date else "—",
         "paid_until": r.paid_until.strftime("%d.%m.%Y") if r.paid_until else "—",
-        "paid_until_iso": r.paid_until.isoformat() if r.paid_until else None,
         "total_paid": r.total_paid(),
         "paid_days": r.paid_days(),
         "debt": r.debt_amount(),
@@ -116,14 +131,18 @@ def serialize_payment(p: Payment) -> dict:
 # ==================== API ====================
 @app.get("/api/health")
 def health():
-    return {"ok": True, "time": datetime.utcnow().isoformat()}
+    return {
+        "ok": True,
+        "time": datetime.utcnow().isoformat(),
+        "admins_count": len(ADMIN_IDS),
+    }
 
 
 @app.get("/api/whoami")
 def whoami(init_data: str):
     user = check_telegram_auth(init_data)
     return {
-        "is_admin": user.get("id") == ADMIN_ID,
+        "is_admin": user.get("id") in ADMIN_IDS,
         "name": user.get("first_name", ""),
         "user_id": user.get("id"),
     }
@@ -139,7 +158,6 @@ def get_me(init_data: str):
         ).first()
         if not rental:
             raise HTTPException(404, "Mijoz topilmadi")
-
         data = serialize_rental(rental)
         data["payments"] = [serialize_payment(p) for p in rental.payments]
         return data
@@ -220,6 +238,7 @@ async def create_rental(
         db.add(rental)
         db.commit()
         db.refresh(rental)
+        log.info(f"➕ Yangi mijoz: {rental.full_name} (id={rental.id})")
         return serialize_rental(rental)
     finally:
         db.close()
@@ -246,7 +265,6 @@ async def create_payment(
             raise HTTPException(400, "Ijara faol emas")
 
         days_covered = amount / rental.daily_rate
-
         base = rental.paid_until if rental.paid_until and rental.paid_until >= date.today() else date.today()
         rental.paid_until = base + timedelta(days=days_covered)
 
@@ -269,6 +287,7 @@ async def create_payment(
                 f"⏳ {(rental.paid_until - date.today()).days} kun qoldi",
             )
 
+        log.info(f"💵 To'lov: {rental.full_name} - {amount:,.0f} so'm")
         return serialize_rental(rental)
     finally:
         db.close()
@@ -276,7 +295,6 @@ async def create_payment(
 
 @app.post("/api/admin/rentals/{rental_id}/finish")
 def finish_rental(rental_id: int, init_data: str = Form(...)):
-    """Skuterni qaytarib olish — ijarani tugatish."""
     require_admin(init_data)
     db = SessionLocal()
     try:
@@ -293,6 +311,7 @@ def finish_rental(rental_id: int, init_data: str = Form(...)):
                 f"🛴 {rental.scooter_info}\n"
                 f"Xizmatimizdan foydalanganingiz uchun rahmat!",
             )
+        log.info(f"🏁 Tugatildi: {rental.full_name}")
         return {"ok": True}
     finally:
         db.close()

@@ -197,6 +197,16 @@
   .login-btn:active{transform:scale(.98)}
   .login-btn:disabled{opacity:.5}
   .login-error{color:var(--debt);font-size:13px;margin-top:12px;min-height:18px}
+
+  /* Video player */
+  .video-card{background:var(--surface);border:1px solid var(--line-soft);
+    border-radius:var(--radius-md);overflow:hidden;margin-bottom:12px}
+  .video-header{padding:12px 14px;background:var(--surface-2);
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:13px;font-weight:600;color:var(--text)}
+  .video-header .icon{font-size:16px;margin-right:8px}
+  .video-card video{width:100%;display:block;background:#000;max-height:420px}
+  .video-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
@@ -222,8 +232,8 @@
   const initData = tg?.initData || "";
   const app = document.getElementById("app");
   const tabbar = document.getElementById("tabbar");
+  const ORIGIN = window.location.origin;
 
-  // Parol tokeni localStorage'da saqlanadi
   const TOKEN_KEY = "skuter_admin_token";
   let adminToken = localStorage.getItem(TOKEN_KEY) || "";
 
@@ -232,21 +242,24 @@
   const haptic = (t="success") => tg?.HapticFeedback?.notificationOccurred?.(t);
   const hapticTap = () => tg?.HapticFeedback?.impactOccurred?.("light");
 
+  // Video URL'ni to'liq qilish
+  const videoUrl = (u) => {
+    if (!u) return null;
+    if (u.startsWith("http")) return u;
+    return ORIGIN + u;
+  };
+
   // ================= API =================
   async function api(path, opts = {}) {
-    // Admin token bo'lsa — sarlavhaga qo'shamiz
     const headers = new Headers(opts.headers || {});
     if (adminToken) headers.set("X-Admin-Token", adminToken);
     opts.headers = headers;
 
     const res = await fetch(path, opts);
 
-    if (res.status === 401 || res.status === 403) {
-      // Token yaroqsiz — tozalaymiz
-      if (path.includes("/api/admin/") && adminToken) {
-        localStorage.removeItem(TOKEN_KEY);
-        adminToken = "";
-      }
+    if ((res.status === 401 || res.status === 403) && adminToken) {
+      localStorage.removeItem(TOKEN_KEY);
+      adminToken = "";
     }
 
     if (!res.ok) {
@@ -256,22 +269,19 @@
     return res.json();
   }
 
-  // ================= PAROL EKRANI =================
+  // ================= ADMIN LOGIN =================
   function renderLogin() {
     tabbar.classList.add("hidden");
     app.innerHTML = `
       <div class="login-wrap fade">
         <div class="login-icon">🔐</div>
         <div class="login-title">Admin kirish</div>
-        <div class="login-sub">
-          Admin panelga kirish uchun parolni kiriting
-        </div>
+        <div class="login-sub">Admin panelga kirish uchun parolni kiriting</div>
         <form id="login-form" style="width:100%;display:flex;flex-direction:column;align-items:center">
           <div class="login-field">
             <label>Parol</label>
             <input type="password" name="password" inputmode="text"
-                   autocomplete="current-password" required
-                   placeholder="••••••••">
+                   autocomplete="current-password" required placeholder="••••••••">
           </div>
           <button type="submit" class="login-btn" id="login-btn">Kirish</button>
           <div class="login-error" id="login-error"></div>
@@ -307,9 +317,7 @@
 
   async function logout() {
     if (!confirm("Admin panelidan chiqmoqchimisiz?")) return;
-    try {
-      await api("/api/admin/logout", { method: "POST" });
-    } catch (e) {}
+    try { await api("/api/admin/logout", { method: "POST" }); } catch (e) {}
     localStorage.removeItem(TOKEN_KEY);
     adminToken = "";
     haptic("success");
@@ -328,7 +336,6 @@
           return;
         }
       } catch (e) {
-        // Token yaroqsiz — tozalash
         localStorage.removeItem(TOKEN_KEY);
         adminToken = "";
       }
@@ -347,29 +354,21 @@
         }
 
         // 👤 Mijoz
-        try {
-          await renderRenter(who.name || "");
-        } catch (e) {
-          app.innerHTML = `
-            <div class="hero fade">
-              <div class="label">Xush kelibsiz</div>
-              <div class="num" style="font-size:22px">Siz mijoz emassiz</div>
-              <div class="cap">
-                Siz hali skuter ijarasiga yozilmagansiz.
-                Iltimos, admin bilan bog'laning.
-              </div>
-            </div>
-            <button class="ghost-btn" onclick="renderLogin()">🔐 Admin sifatida kirish</button>
-          `;
-        }
+        await renderRenter(who.name || "");
         return;
       } catch (e) {
-        // davom etamiz
+        app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+        return;
       }
     }
 
-    // 3) Hech narsa yo'q — login ekrani
-    renderLogin();
+    // 3) Hech narsa yo'q
+    app.innerHTML = `
+      <div class="hero fade">
+        <div class="label">Diqqat</div>
+        <div class="num" style="font-size:22px">Telegram ichida oching</div>
+        <div class="cap">Bu sahifa faqat Telegram WebApp orqali ishlaydi.</div>
+      </div>`;
   }
 
   // ================= ADMIN TABS =================
@@ -429,13 +428,30 @@
             : `<p class="empty">Hali mijozlar yo'q.<br>"Yangi mijoz" bo'limidan qo'shing.</p>`}
         </div>
 
-        <button class="ghost-btn" style="margin-top:24px" onclick="logout()">
-          🚪 Chiqish
-        </button>
+        <button class="ghost-btn" style="margin-top:24px" onclick="logout()">🚪 Chiqish</button>
       `;
     } catch (e) {
       app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
     }
+  }
+
+  function videoBlock(title, icon, url) {
+    if (!url) {
+      return `
+        <div class="video-card">
+          <div class="video-header">
+            <span><span class="icon">${icon}</span>${title}</span>
+          </div>
+          <div class="video-empty">Video yuklanmagan</div>
+        </div>`;
+    }
+    return `
+      <div class="video-card">
+        <div class="video-header">
+          <span><span class="icon">${icon}</span>${title}</span>
+        </div>
+        <video controls playsinline preload="metadata" src="${esc(videoUrl(url))}"></video>
+      </div>`;
   }
 
   function rentalRowHtml(r) {
@@ -465,13 +481,13 @@
         ? Math.min(100, (r.paid_days / (r.paid_days + r.debt_days || 1)) * 100)
         : 0;
 
-      const videoBadges = [];
-      if (r.video_selfie) videoBadges.push(`<span class="badge selfie">📹 Selfi</span>`);
-      if (r.video_scooter) videoBadges.push(`<span class="badge scooter">🛴 Skuter</span>`);
+      const badges = [];
+      if (r.has_selfie) badges.push(`<span class="badge selfie">📹 Selfi</span>`);
+      if (r.has_scooter_video) badges.push(`<span class="badge scooter">🛴 Skuter</span>`);
 
       detail = `
         <div class="rrow-detail">
-          ${videoBadges.length ? `<div style="margin-bottom:10px">${videoBadges.join("")}</div>` : ""}
+          ${badges.length ? `<div style="margin-bottom:10px">${badges.join("")}</div>` : ""}
           <div class="kv"><span>Telefon</span><b>${esc(r.phone)}</b></div>
           <div class="kv"><span>Pasport</span><b>${esc(r.passport)}</b></div>
           <div class="kv"><span>Kunlik narx</span><b>${fmt(r.daily_rate)} so'm</b></div>
@@ -507,6 +523,12 @@
           <button class="copy-btn" style="margin-top:12px;color:var(--debt)"
             onclick="finishRental(event,${r.id})">🏁 Skuterni qaytarib olish</button>
           ` : ""}
+
+          <div class="section-title" style="margin-top:20px">
+            <span>Videolar</span>
+          </div>
+          ${videoBlock("Selfi ariza", "📹", r.video_selfie_url)}
+          ${videoBlock("Skuter holati", "🛴", r.video_scooter_url)}
         </div>`;
     }
 
@@ -653,7 +675,7 @@
     }
   }
 
-  // ================= USER: KABINET =================
+  // ================= USER: TO'LIQ KABINET =================
   async function renderRenter(fallbackName = "") {
     app.innerHTML = `<div class="skel"></div><div class="skel"></div>`;
 
@@ -661,6 +683,7 @@
     try {
       d = await api("/api/me?init_data=" + encodeURIComponent(initData));
     } catch (e) {
+      // Mijoz topilmadi
       app.innerHTML = `
         <div class="top fade">
           <span class="role-badge" style="background:var(--blue-soft);color:var(--blue)">👤 Foydalanuvchi</span>
@@ -668,34 +691,35 @@
           <div class="sub">Siz mijoz sifatida ro'yxatdan o'tmagansiz</div>
         </div>
         <div class="hero fade">
-          <div class="label">Holat</div>
-          <div class="num blue" style="font-size:22px">Ma'lumot yo'q</div>
+          <div class="label">Ma'lumot yo'q</div>
+          <div class="num blue" style="font-size:22px">Skuter olinmagan</div>
           <div class="cap">
             Skuter ijarasi uchun admin bilan bog'laning.
+            Ular sizga ro'yxatdan o'tish havolasini yuboradi.
           </div>
-        </div>
-        <button class="ghost-btn" onclick="renderLogin()">🔐 Admin sifatida kirish</button>
-      `;
+        </div>`;
       return;
     }
 
     const hasDebt = d.debt > 0;
 
+    // Hero
     let heroLabel, heroNum, heroClass, heroCap;
     if (hasDebt) {
-      heroLabel = "⚠️ Sizning qarzingiz";
+      heroLabel = "⚠️ To'lash kerak";
       heroNum = fmt(d.debt) + " so'm";
       heroClass = "debt";
-      heroCap = d.debt_days + " kundan beri to'lov qilinmagan";
+      heroCap = `${d.debt_days} kundan beri to'lov qilinmagan`;
     } else {
       heroLabel = "✅ Holat yaxshi";
       heroNum = "Qarzingiz yo'q";
       heroClass = "ok";
       heroCap = d.days_left > 0
-        ? `To'lov ${d.paid_until} sanasigacha yopilgan · yana ${d.days_left} kun`
+        ? `Keyingi to'lov: ${d.paid_until} · yana ${d.days_left} kun`
         : `To'lov ${d.paid_until} sanasigacha yopilgan`;
     }
 
+    // To'lovlar tarixi
     const paymentsHtml = d.payments.length
       ? d.payments.map(p => `
           <div class="payment-item fade">
@@ -703,6 +727,17 @@
             <div class="payment-meta">${p.date}<br>${p.days_covered} kunga</div>
           </div>`).join("")
       : `<p class="empty">Hali to'lov qilinmagan</p>`;
+
+    // Videolar
+    const videoHtml = (d.has_selfie || d.has_scooter_video)
+      ? `
+        <div class="section-title fade">
+          <span>Yuklangan videolar</span>
+        </div>
+        ${videoBlock("Selfi ariza", "📹", d.video_selfie_url)}
+        ${videoBlock("Skuter holati", "🛴", d.video_scooter_url)}
+      `
+      : "";
 
     app.innerHTML = `
       <div class="top fade">
@@ -715,6 +750,18 @@
         <div class="label">${heroLabel}</div>
         <div class="num ${heroClass}">${heroNum}</div>
         <div class="cap">${heroCap}</div>
+      </div>
+
+      <div class="section-title fade">
+        <span>Skuter ma'lumotlari</span>
+      </div>
+      <div class="rrow fade" style="padding:16px 18px">
+        <div class="kv"><span>🛴 Skuter</span><b>${esc(d.scooter_info)}</b></div>
+        <div class="kv"><span>💰 Kunlik narx</span><b>${fmt(d.daily_rate)} so'm</b></div>
+        <div class="kv"><span>📅 To'lov turi</span><b>${esc(d.payment_type || "kunlik")}</b></div>
+        <div class="kv"><span>🚀 Boshlangan</span><b>${d.start_date}</b></div>
+        <div class="kv"><span>📆 To'langan sana</span><b>${d.paid_until}</b></div>
+        ${d.notes ? `<div class="kv"><span>📝 Izoh</span><b>${esc(d.notes)}</b></div>` : ""}
       </div>
 
       <div class="stat-grid fade">
@@ -730,16 +777,22 @@
         <div class="stat-card">
           <div class="k">Qarz kunlari</div>
           <div class="v debt">${d.debt_days} kun</div>
+        </div>
+        <div class="stat-card">
+          <div class="k">To'lash kerak</div>
+          <div class="v debt" style="font-size:18px">${fmt(d.debt)}</div>
         </div>` : `
         <div class="stat-card">
           <div class="k">Qolgan kunlar</div>
           <div class="v ok">${d.days_left} kun</div>
-        </div>`}
-        <div class="stat-card">
-          <div class="k">Boshlangan</div>
-          <div class="v" style="font-size:16px">${d.start_date}</div>
         </div>
+        <div class="stat-card">
+          <div class="k">Keyingi to'lov</div>
+          <div class="v ok" style="font-size:16px">${d.paid_until}</div>
+        </div>`}
       </div>
+
+      ${videoHtml}
 
       <div class="section-title fade">
         <span>To'lovlar tarixi</span>

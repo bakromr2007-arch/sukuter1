@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from config import LOG_LEVEL, REMINDER_HOUR_UTC, REMINDER_MINUTE_UTC
 from webapp_api import app
 from bot import bot, dp, send_daily_reminders
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 log = logging.getLogger("app")
@@ -23,10 +24,9 @@ async def lifespan(app):
     me = await bot.get_me()
     log.info(f"✅ Bot ulandi: @{me.username}")
 
-    # Har kuni 09:00 Toshkent (04:00 UTC)
-    scheduler.add_job(send_daily_reminders, "cron", hour=4, minute=0)
+    scheduler.add_job(send_daily_reminders, "cron", hour=REMINDER_HOUR_UTC, minute=REMINDER_MINUTE_UTC)
     scheduler.start()
-    log.info("⏰ Scheduler ishga tushdi (har kuni 09:00 Toshkent)")
+    log.info(f"⏰ Scheduler ishga tushdi (har kuni {REMINDER_HOUR_UTC:02d}:{REMINDER_MINUTE_UTC:02d} UTC)")
 
     polling_task = asyncio.create_task(dp.start_polling(bot))
     log.info("🤖 Bot polling boshlandi")

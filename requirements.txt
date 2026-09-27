@@ -1,7 +1,7 @@
 aiogram==3.13.1
 SQLAlchemy==2.0.35
 fastapi==0.115.0
-uvicorn==0.30.6
+uvicorn[standard]==0.30.6
 APScheduler==3.10.4
 psycopg2-binary==2.9.9
 python-dotenv==1.0.1

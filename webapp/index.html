@@ -30,26 +30,31 @@
   @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .fade{animation:fadeUp .35s cubic-bezier(.2,.7,.3,1) both}
 
-  /* ---------- DEBUG PANEL ---------- */
-  #__debug {
-    position:fixed;left:0;right:0;top:0;max-height:45vh;overflow:auto;
-    background:#000;color:#0f0;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;
-    padding:10px 12px;z-index:99999;white-space:pre-wrap;word-break:break-all;
-    border-bottom:2px solid #0f0;display:none;
-  }
-  #__debug.show{display:block}
-  #__debug .err{color:#ff5555}
-  #__debug .warn{color:#ffb020}
-  #__debug .ok{color:#4ade80}
-  #__debug-toggle {
-    position:fixed;right:8px;top:8px;z-index:100000;
-    background:rgba(0,0,0,.85);color:#0f0;border:1px solid #0f0;
-    border-radius:8px;padding:6px 10px;font:11px ui-monospace,monospace;
+  /* Rol banneri */
+  #role-banner {
+    position:fixed;top:0;left:0;right:0;z-index:9999;
+    background:rgba(0,0,0,.85);color:#4ade80;font:11px ui-monospace,monospace;
+    padding:6px 10px;text-align:center;border-bottom:1px solid #4ade80;
     display:none;
   }
-  #__debug-toggle.show{display:block}
+  #role-banner.show{display:block}
+  #role-banner.admin{color:#ffb020;border-color:#ffb020}
+  #role-banner.err{color:#ff6b6b;border-color:#ff6b6b}
+  #role-banner .close{float:right;background:none;border:none;color:inherit;font-size:14px;padding:0 8px}
 
-  /* ---------- ASOSIY ---------- */
+  #diag {
+    max-width:600px;margin:40px auto;padding:24px 20px;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+  }
+  #diag h2{font-size:20px;margin-bottom:12px}
+  #diag p{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+  #diag code{background:var(--bg-2);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--amber)}
+  #diag .step{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:var(--radius-sm);
+    padding:12px 14px;margin-bottom:10px;font-size:13px;line-height:1.6}
+  #diag .step b{color:var(--amber)}
+  #diag .raw{background:#000;color:#0f0;font:11px ui-monospace,monospace;padding:12px;
+    border-radius:var(--radius-sm);word-break:break-all;margin-top:12px;max-height:180px;overflow:auto}
+
   .top{margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
   .top .greet{font-size:24px;font-weight:700;letter-spacing:-.02em}
   .top .sub{font-size:14px;color:var(--muted);margin-top:4px}
@@ -162,7 +167,6 @@
   .ghost-btn{width:100%;padding:14px;border-radius:var(--radius-md);
     border:1px solid var(--line);background:transparent;color:var(--muted);
     font-size:14px;font-weight:600;margin-top:10px}
-  .ghost-btn:active{background:var(--surface-2)}
 
   .payment-item{display:flex;justify-content:space-between;align-items:center;
     padding:14px 16px;background:var(--surface);border:1px solid var(--line-soft);
@@ -172,9 +176,6 @@
 
   .empty,.loading,.error,.notice{color:var(--muted);font-size:14px;
     padding:32px 20px;text-align:center}
-  .loading::after{content:"";display:inline-block;width:6px;height:6px;margin-left:8px;
-    border-radius:50%;background:var(--amber);animation:pulse 1s infinite;vertical-align:middle}
-  @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
   .error{color:var(--debt)}
   .notice{color:var(--ok);padding:12px 0;text-align:left}
 
@@ -218,6 +219,7 @@
   .role-badge{display:inline-block;font-size:10px;font-weight:700;
     text-transform:uppercase;letter-spacing:.1em;padding:4px 10px;border-radius:100px;
     background:var(--amber-soft);color:var(--amber);margin-bottom:8px}
+  .role-badge.user{background:var(--blue-soft);color:var(--blue)}
 
   .video-card{background:var(--surface);border:1px solid var(--line-soft);
     border-radius:var(--radius-md);overflow:hidden;margin-bottom:12px}
@@ -242,8 +244,7 @@
 </style>
 </head>
 <body>
-  <div id="__debug"></div>
-  <button id="__debug-toggle" type="button">🔧</button>
+  <div id="role-banner"></div>
 
   <div id="app">
     <div class="skel"></div><div class="skel"></div><div class="skel"></div>
@@ -257,117 +258,50 @@
 
 <script>
   // ============================================================
-  // DEBUG PANEL
-  // ============================================================
-  const dbgEl = document.getElementById("__debug");
-  const dbgToggle = document.getElementById("__debug-toggle");
-  let dbgLines = [];
-
-  function dbg(msg, cls = "") {
-    const line = (cls ? `<span class="${cls}">` : "") + String(msg) + (cls ? "</span>" : "");
-    dbgLines.push(line);
-    dbgEl.innerHTML = dbgLines.join("\n");
-    dbgEl.scrollTop = dbgEl.scrollHeight;
-    // Konsolga ham yozamiz
-    console.log("[DBG]", msg);
-  }
-
-  function showDebug(show = true) {
-    dbgEl.classList.toggle("show", show);
-    dbgToggle.classList.toggle("show", true);
-  }
-  dbgToggle.addEventListener("click", () => dbgEl.classList.toggle("show"));
-
-  window.addEventListener("error", (e) => dbg("❌ JS XATO: " + e.message + " @ " + (e.filename || "?"), "err"));
-  window.addEventListener("unhandledrejection", (e) => dbg("❌ Promise xato: " + (e.reason?.message || e.reason), "err"));
-
-  // ============================================================
   // TELEGRAM
   // ============================================================
-  dbg("=== SKUTER WEBAPP DEBUG ===");
-  dbg("Sahifa: " + window.location.href);
-  dbg("Origin: " + window.location.origin);
-  dbg("UA: " + navigator.userAgent.slice(0, 120));
-
   const tg = window.Telegram?.WebApp;
-  dbg("window.Telegram bormi: " + (window.Telegram ? "HA" : "YO'Q"), window.Telegram ? "ok" : "err");
-  dbg("tg.WebApp bormi: " + (tg ? "HA" : "YO'Q"), tg ? "ok" : "err");
+  try { tg?.ready(); tg?.expand(); } catch(e){}
+  try { tg?.setHeaderColor?.("#0e1118"); } catch(e){}
+  try { tg?.setBackgroundColor?.("#0e1118"); } catch(e){}
 
-  if (tg) {
-    dbg("tg.version: " + (tg.version || "—"));
-    dbg("tg.platform: " + (tg.platform || "—"));
-    dbg("tg.colorScheme: " + (tg.colorScheme || "—"));
-    try { tg.ready(); dbg("✅ tg.ready() chaqirildi", "ok"); } catch (e) { dbg("ready xatosi: " + e.message, "err"); }
-    try { tg.expand(); dbg("✅ tg.expand() chaqirildi", "ok"); } catch (e) { dbg("expand xatosi: " + e.message, "err"); }
-    try { tg.setHeaderColor?.("#0e1118"); } catch (e) {}
-    try { tg.setBackgroundColor?.("#0e1118"); } catch (e) {}
-  }
-
-  // ============================================================
-  // INIT DATA
-  // ============================================================
   function tryParse(str) {
     if (!str) return "";
     try {
       const p = new URLSearchParams(str);
       return p.get("tgWebAppData") || "";
-    } catch (err) {
-      dbg("parse xatosi: " + err.message, "warn");
-      return "";
-    }
+    } catch (err) { return ""; }
   }
 
   function getInitData() {
-    // 1-usul: rasmiy kutubxona
-    if (tg?.initData) {
-      dbg("✅ tg.initData BOR, uzunlik: " + tg.initData.length, "ok");
-      return tg.initData;
-    }
-    dbg("⚠️ tg.initData BO'SH yoki mavjud emas", "warn");
-
-    // 2-usul: URL'dan o'qish (ba'zi Desktop versiyalar uchun)
+    if (tg?.initData) return tg.initData;
     const fromHash = tryParse(window.location.hash.replace(/^#/, ""));
     const fromSearch = tryParse(window.location.search.replace(/^\?/, ""));
-    dbg("hash'dan o'qildi: " + fromHash.length + " belgi");
-    dbg("search'dan o'qildi: " + fromSearch.length + " belgi");
-
     return fromHash || fromSearch;
   }
 
-  let initData = getInitData();
-  dbg("Yakuniy initData uzunligi: " + initData.length, initData.length > 0 ? "ok" : "err");
+  const initData = getInitData();
+  const hasInitData = initData.length > 0;
 
-  // Agar initData yo'q bo'lsa, Telegram ichidami yo'qmi aniqlaymiz
-  if (!initData) {
-    const insideTg = !!(window.Telegram?.WebApp?.initDataUnsafe?.user || window.Telegram?.WebApp?.platform && window.Telegram.WebApp.platform !== "unknown");
-    dbg("Telegram ichidamizmi? " + (insideTg ? "HA" : "YO'Q yoki aniqlanmadi"), insideTg ? "warn" : "err");
-    if (insideTg) {
-      dbg("→ Agar Telegram ichida bo'lsak, BotFather'da Menu Button URL ni tekshiring!", "warn");
-      dbg("→ WEBAPP_URL bilan aynan bir xil bo'lishi shart.", "warn");
-    }
-    showDebug(true);
-  }
-
-  // Admin token (parol orqali kirish uchun)
   let adminToken = sessionStorage.getItem("admin_token") || "";
   const app = document.getElementById("app");
   const tabbar = document.getElementById("tabbar");
+  const banner = document.getElementById("role-banner");
   const ORIGIN = window.location.origin;
 
-  let currentTab = "dash";
   let currentFilter = "";
   let currentSearch = "";
 
   const fmt = n => Math.round(Number(n) || 0).toLocaleString("uz-UZ");
   const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
-  const haptic = (t = "success") => { try { tg?.HapticFeedback?.notificationOccurred?.(t); } catch (e) {} };
-  const hapticTap = () => { try { tg?.HapticFeedback?.impactOccurred?.("light"); } catch (e) {} };
+  const haptic = (t="success") => { try { tg?.HapticFeedback?.notificationOccurred?.(t); } catch(e){} };
+  const hapticTap = () => { try { tg?.HapticFeedback?.impactOccurred?.("light"); } catch(e){} };
+  const videoUrl = (u) => !u ? null : (u.startsWith("http") ? u : ORIGIN + u);
 
-  const videoUrl = (u) => {
-    if (!u) return null;
-    if (u.startsWith("http")) return u;
-    return ORIGIN + u;
-  };
+  function showBanner(text, kind = "") {
+    banner.className = "show " + kind;
+    banner.innerHTML = text + ' <button class="close" onclick="this.parentElement.className=\'\'">✕</button>';
+  }
 
   function toast(msg, kind = "ok") {
     const t = document.createElement("div");
@@ -378,9 +312,6 @@
     setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 300); }, 2600);
   }
 
-  // ============================================================
-  // API
-  // ============================================================
   async function api(path, opts = {}) {
     const headers = opts.headers || {};
     if (adminToken) headers["X-Admin-Token"] = adminToken;
@@ -394,79 +325,86 @@
   }
 
   // ============================================================
-  // BOOT
+  // BOOT — ROLNI ANIQLASH
   // ============================================================
   async function boot() {
-    dbg("--------- BOOT ---------");
-    dbg("initData uzunligi: " + initData.length);
-    dbg("adminToken: " + (adminToken ? "bor" : "yo'q"));
-
-    // Hech narsa yo'q bo'lsa — login
-    if (!initData && !adminToken) {
-      dbg("→ Login sahifasi (initData ham, token ham yo'q)", "warn");
-      showDebug(true); // foydalanuvchi nima bo'layotganini ko'rsin
-      renderLogin();
+    // 1) Telegram initData umuman yo'q bo'lsa — diagnostika ko'rsatamiz
+    if (!hasInitData && !adminToken) {
+      renderDiag();
       return;
     }
 
     try {
-      const url = "/api/whoami?init_data=" + encodeURIComponent(initData);
-      dbg("→ whoami chaqirilmoqda...");
-      const res = await fetch(url, {
-        headers: adminToken ? { "X-Admin-Token": adminToken } : {}
-      });
-      dbg("← whoami status: " + res.status, res.ok ? "ok" : "err");
-      const who = await res.json();
-      dbg("← whoami javob: " + JSON.stringify(who));
+      const who = await api("/api/whoami?init_data=" + encodeURIComponent(initData));
 
+      // 2) ADMIN — parol yoki Telegram orqali
       if (who.is_admin) {
-        dbg("→ ADMIN paneli ochilmoqda", "ok");
-        showDebug(false); // muvaffaqiyatli bo'lsa panelni yashiramiz
+        showBanner("🛡 <b>ADMIN</b> sifatida kirdingiz (" + (who.via === "password" ? "parol" : "Telegram") + ")", "admin");
+        setTimeout(() => banner.className = "", 4000);
         tabbar.classList.remove("hidden");
         setActiveTab("dash");
         return;
       }
 
-      if (!initData) {
+      // 3) Admin token eskirgan bo'lsa
+      if (!hasInitData && adminToken) {
         sessionStorage.removeItem("admin_token");
         adminToken = "";
-        renderLogin("Sessiya tugagan. Qayta kiring.");
+        renderDiag("Sessiya tugagan. Qayta kiring.");
         return;
       }
 
-      dbg("→ Mijoz kabineti ochilmoqda");
-      showDebug(false);
+      // 4) Oddiy foydalanuvchi — kabinet
+      showBanner("👤 <b>MIJOZ</b> sifatida kirdingiz" + (who.name ? " (" + esc(who.name) + ")" : ""));
+      setTimeout(() => banner.className = "", 4000);
       await renderRenter(who.name || "");
     } catch (e) {
-      dbg("❌ boot xatosi: " + e.message, "err");
-      showDebug(true);
-      app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+      showBanner("❌ Xatolik: " + esc(e.message), "err");
+      app.innerHTML = `<p class="error" style="margin-top:60px">${esc(e.message)}</p>`;
     }
   }
 
   // ============================================================
-  // LOGIN (parol orqali)
+  // DIAGNOSTIKA — initData yo'q bo'lganda
   // ============================================================
-  function renderLogin(notice = "") {
+  function renderDiag(notice = "") {
+    const urlPreview = window.location.href.slice(0, 200);
     app.innerHTML = `
-      <div class="login-box fade">
-        <div class="top" style="display:block;text-align:center">
-          <div class="greet">🛴 Skuter Admin</div>
-          <div class="sub">Kirish uchun parol kiriting</div>
+      <div id="diag" class="fade">
+        <h2>⚠️ Rol aniqlanmadi</h2>
+        <p>Telegram WebApp sizga <code>initData</code> yubormadi, shuning uchun tizim sizni <b>admin</b> yoki <b>mijoz</b> sifatida taniy olmayapti.</p>
+        ${notice ? `<p class="notice" style="color:var(--amber)">${esc(notice)}</p>` : ""}
+
+        <div class="step">
+          <b>1-qadam.</b> @BotFather → <code>/mybots</code> → botingiz → <b>Bot Settings</b> → <b>Domain</b> bo'limiga kiriting:
+          <br><code>${location.hostname}</code>
         </div>
-        ${notice ? `<p class="notice" style="text-align:center;color:var(--amber)">${esc(notice)}</p>` : ""}
-        <form id="login-form">
-          <div class="field">
-            <label>Parol</label>
-            <input name="password" type="password" required autofocus>
-          </div>
-          <button type="submit" class="submit-btn" id="login-btn">Kirish</button>
-        </form>
-        <div id="login-error"></div>
+        <div class="step">
+          <b>2-qadam.</b> Xuddi shu joyda <b>Menu Button</b> → <b>Edit menu button URL</b>:
+          <br><code>${location.origin}</code>
+        </div>
+        <div class="step">
+          <b>3-qadam.</b> Botni butunlay yopib, Telegram'dan chiqib, qaytadan <code>/start</code> bosing.
+        </div>
+
+        <p style="margin-top:20px;font-size:12px;color:var(--muted-2)">
+          <b>Hozirgi URL:</b><br>
+          <span style="font-size:10px;word-break:break-all">${esc(urlPreview)}${window.location.href.length > 200 ? "..." : ""}</span>
+        </p>
+
+        <div class="field" style="margin-top:20px">
+          <label>Yoki admin parolingizni kiriting</label>
+          <form id="diag-login">
+            <input name="password" type="password" placeholder="Parol" required style="text-align:center;margin-bottom:10px">
+            <button type="submit" class="submit-btn" id="diag-login-btn">Admin sifatida kirish</button>
+          </form>
+          <div id="diag-login-error"></div>
+        </div>
       </div>`;
-    document.getElementById("login-form").addEventListener("submit", async (ev) => {
+
+    document.getElementById("diag-login").addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      const btn = document.getElementById("login-btn");
+      const btn = document.getElementById("diag-login-btn");
       btn.disabled = true; btn.textContent = "Tekshirilmoqda...";
       const fd = new FormData(ev.target);
       try {
@@ -474,13 +412,15 @@
         adminToken = res.token;
         sessionStorage.setItem("admin_token", adminToken);
         haptic("success");
-        showDebug(false);
+        showBanner("🛡 <b>ADMIN</b> sifatida kirdingiz", "admin");
+        setTimeout(() => banner.className = "", 4000);
         tabbar.classList.remove("hidden");
         setActiveTab("dash");
       } catch (e) {
         haptic("error");
-        document.getElementById("login-error").innerHTML = `<p class="error">${esc(e.message)}</p>`;
-        btn.disabled = false; btn.textContent = "Kirish";
+        document.getElementById("diag-login-error").innerHTML =
+          `<p class="error">${esc(e.message)}</p>`;
+        btn.disabled = false; btn.textContent = "Admin sifatida kirish";
       }
     });
   }
@@ -490,7 +430,7 @@
     adminToken = "";
     api("/api/admin/logout", { method: "POST" }).catch(() => {});
     tabbar.classList.add("hidden");
-    renderLogin("Chiqdingiz.");
+    renderDiag("Chiqdingiz.");
   }
 
   // ============================================================
@@ -498,7 +438,6 @@
   // ============================================================
   function setActiveTab(tab) {
     hapticTap();
-    currentTab = tab;
     document.getElementById("tab-dash").classList.toggle("active", tab === "dash");
     document.getElementById("tab-new").classList.toggle("active", tab === "new");
     document.getElementById("tab-history").classList.toggle("active", tab === "history");
@@ -534,29 +473,21 @@
         statsHtml = `
           <div class="top fade">
             <div>
-              <span class="role-badge">🛡 Admin paneli</span>
-              <div class="greet">Nazorat</div>
+              <span class="role-badge">🛡 ADMIN</span>
+              <div class="greet">Nazorat paneli</div>
               <div class="sub">${active.length} faol · ${pending.length} kutilmoqda</div>
             </div>
-            <button class="icon-btn" id="refresh-btn" title="Yangilash">⟳</button>
+            <button class="icon-btn" id="refresh-btn">⟳</button>
           </div>
           <div class="stat-grid fade">
-            <div class="stat-card">
-              <div class="k">Umumiy qarz</div>
-              <div class="v ${totalDebt > 0 ? 'debt' : 'ok'}">${fmt(totalDebt)}</div>
-            </div>
-            <div class="stat-card">
-              <div class="k">Jami tushum</div>
-              <div class="v amber">${fmt(totalRevenue)}</div>
-            </div>
-            <div class="stat-card">
-              <div class="k">Qarzdorlar</div>
-              <div class="v ${debtors.length ? 'debt' : 'ok'}">${debtors.length}</div>
-            </div>
-            <div class="stat-card">
-              <div class="k">Faol ijaralar</div>
-              <div class="v">${active.length}</div>
-            </div>
+            <div class="stat-card"><div class="k">Umumiy qarz</div>
+              <div class="v ${totalDebt > 0 ? 'debt' : 'ok'}">${fmt(totalDebt)}</div></div>
+            <div class="stat-card"><div class="k">Jami tushum</div>
+              <div class="v amber">${fmt(totalRevenue)}</div></div>
+            <div class="stat-card"><div class="k">Qarzdorlar</div>
+              <div class="v ${debtors.length ? 'debt' : 'ok'}">${debtors.length}</div></div>
+            <div class="stat-card"><div class="k">Faol ijaralar</div>
+              <div class="v">${active.length}</div></div>
           </div>
           <div class="filter-row">
             ${["", "faol", "kutilmoqda"].map(s => `
@@ -568,11 +499,11 @@
         statsHtml = `
           <div class="top fade">
             <div>
-              <span class="role-badge">🗂 Tarix</span>
-              <div class="greet">Yakunlangan ijaralar</div>
+              <span class="role-badge">🗂 TARIX</span>
+              <div class="greet">Yakunlangan</div>
               <div class="sub">${rentals.length} ta</div>
             </div>
-            <button class="icon-btn" id="refresh-btn" title="Yangilash">⟳</button>
+            <button class="icon-btn" id="refresh-btn">⟳</button>
           </div>`;
       }
 
@@ -580,17 +511,11 @@
         ${statsHtml}
         <div class="search-wrap fade">
           <span class="sicon">🔍</span>
-          <input id="search-input" placeholder="Ism, telefon yoki skuter bo'yicha qidirish..."
-                 value="${esc(currentSearch)}">
+          <input id="search-input" placeholder="Qidirish..." value="${esc(currentSearch)}">
         </div>
-        <div class="section-title fade">
-          <span>Mijozlar</span>
-          <span class="count">${rentals.length}</span>
-        </div>
+        <div class="section-title fade"><span>Mijozlar</span><span class="count">${rentals.length}</span></div>
         <div class="rlist">
-          ${rentals.length
-            ? rentals.map(rentalRowHtml).join("")
-            : `<p class="empty">Hech narsa topilmadi.</p>`}
+          ${rentals.length ? rentals.map(rentalRowHtml).join("") : `<p class="empty">Topilmadi.</p>`}
         </div>
       `;
 
@@ -603,134 +528,84 @@
         chip.addEventListener("click", () => renderDashboard({ status: chip.dataset.filter }));
       });
 
-      let searchTimer;
+      let t;
       document.getElementById("search-input")?.addEventListener("input", (ev) => {
-        clearTimeout(searchTimer);
+        clearTimeout(t);
         const val = ev.target.value;
-        searchTimer = setTimeout(() => {
+        t = setTimeout(() => {
           currentSearch = val;
           renderDashboard(isHistory ? { status: "tugagan" } : { status: currentFilter });
         }, 350);
       });
 
-      bindRowActions();
+      document.querySelectorAll(".rlist").forEach(l => l.addEventListener("click", onRowClick));
     } catch (e) {
       app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
     }
   }
 
   function videoBlock(title, icon, url) {
-    if (!url) {
-      return `
-        <div class="video-card">
-          <div class="video-header"><span><span class="icon">${icon}</span>${title}</span></div>
-          <div class="video-empty">Video yuklanmagan</div>
-        </div>`;
-    }
-    return `
-      <div class="video-card">
-        <div class="video-header"><span><span class="icon">${icon}</span>${title}</span></div>
-        <video controls playsinline preload="metadata" src="${esc(videoUrl(url))}"></video>
-      </div>`;
+    if (!url) return `<div class="video-card"><div class="video-header"><span><span class="icon">${icon}</span>${title}</span></div><div class="video-empty">Video yuklanmagan</div></div>`;
+    return `<div class="video-card"><div class="video-header"><span><span class="icon">${icon}</span>${title}</span></div><video controls playsinline preload="metadata" src="${esc(videoUrl(url))}"></video></div>`;
   }
 
   function rentalRowHtml(r) {
     let statusHtml, statusClass;
-    if (r.status === "kutilmoqda") {
-      statusHtml = "⏳ Kutilmoqda"; statusClass = "pending";
-    } else if (r.status === "tugagan") {
-      statusHtml = "✅ Tugagan"; statusClass = "done";
-    } else if (r.debt > 0) {
-      statusHtml = "⚠️ " + fmt(r.debt) + " so'm"; statusClass = "debt";
-    } else {
-      statusHtml = "✅ Qarzsiz"; statusClass = "ok";
-    }
+    if (r.status === "kutilmoqda") { statusHtml = "⏳ Kutilmoqda"; statusClass = "pending"; }
+    else if (r.status === "tugagan") { statusHtml = "✅ Tugagan"; statusClass = "done"; }
+    else if (r.debt > 0) { statusHtml = "⚠️ " + fmt(r.debt); statusClass = "debt"; }
+    else { statusHtml = "✅ Qarzsiz"; statusClass = "ok"; }
 
     let detail = "";
     if (r.status === "kutilmoqda") {
-      detail = `
-        <div class="rrow-detail">
-          <p style="font-size:13.5px;color:var(--muted);line-height:1.5">
-            Mijoz hali botni ishga tushirmagan. Quyidagi havolani yuboring:
-          </p>
-          <div class="link-box">${esc(r.reg_link)}</div>
-          <button class="copy-btn" data-action="copy" data-link="${esc(r.reg_link)}">📋 Havolani nusxalash</button>
-          <button class="copy-btn danger-btn" data-action="delete" data-id="${r.id}">🗑 O'chirish</button>
-        </div>`;
+      detail = `<div class="rrow-detail">
+        <p style="font-size:13.5px;color:var(--muted);line-height:1.5">Havolani mijozga yuboring:</p>
+        <div class="link-box">${esc(r.reg_link)}</div>
+        <button class="copy-btn" data-action="copy" data-link="${esc(r.reg_link)}">📋 Nusxalash</button>
+        <button class="copy-btn danger-btn" data-action="delete" data-id="${r.id}">🗑 O'chirish</button>
+      </div>`;
     } else if (r.status === "tugagan") {
-      detail = `
-        <div class="rrow-detail">
-          <div class="kv"><span>Telefon</span><b>${esc(r.phone)}</b></div>
-          <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)} so'm</b></div>
-          <div class="kv"><span>To'langan kunlar</span><b>${r.paid_days} kun</b></div>
-        </div>`;
+      detail = `<div class="rrow-detail">
+        <div class="kv"><span>Telefon</span><b>${esc(r.phone)}</b></div>
+        <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)} so'm</b></div>
+        <div class="kv"><span>To'langan kunlar</span><b>${r.paid_days} kun</b></div>
+      </div>`;
     } else {
-      const progressPct = r.paid_days > 0
-        ? Math.min(100, (r.paid_days / (r.paid_days + r.debt_days || 1)) * 100)
-        : 0;
-
       const badges = [];
       if (r.has_selfie) badges.push(`<span class="badge selfie">📹 Selfi</span>`);
       if (r.has_scooter_video) badges.push(`<span class="badge scooter">🛴 Skuter</span>`);
-
-      detail = `
-        <div class="rrow-detail">
-          ${badges.length ? `<div style="margin-bottom:10px">${badges.join("")}</div>` : ""}
-          <div class="kv"><span>Telefon</span><b>${esc(r.phone)}</b></div>
-          <div class="kv"><span>Pasport</span><b>${esc(r.passport)}</b></div>
-          <div class="kv"><span>Kunlik narx</span><b>${fmt(r.daily_rate)} so'm</b></div>
-          <div class="kv"><span>To'langan kunlar</span><b>${r.paid_days} kun</b></div>
-          <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)} so'm</b></div>
-          <div class="kv"><span>${r.debt > 0 ? "Qarz" : "To'langan sana"}</span>
-            <b style="color:${r.debt > 0 ? 'var(--debt)' : 'var(--ok)'}">
-              ${r.debt > 0 ? fmt(r.debt) + " so'm (" + r.debt_days + " kun)" : r.paid_until}
-            </b>
-          </div>
-          ${r.debt === 0 && r.days_left > 0
-            ? `<div class="kv"><span>Yana yetadi</span><b>${r.days_left} kun</b></div>` : ""}
-
-          ${r.paid_days > 0 || r.debt_days > 0 ? `
-          <div class="progress-wrap">
-            <div class="progress-bar"><div class="progress-fill" style="width:${progressPct}%"></div></div>
-          </div>` : ""}
-
-          <div class="pay-row">
-            <input type="number" inputmode="numeric" placeholder="Summa (so'm)" id="pay-${r.id}">
-            <button data-action="pay" data-id="${r.id}">Qabul</button>
-          </div>
-          <div class="quick-amounts">
-            <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate * 1}">1 kun</button>
-            <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate * 7}">1 hafta</button>
-            <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate * 30}">1 oy</button>
-          </div>
-
-          ${r.status === "faol" ? `
-          <button class="copy-btn danger-btn" style="margin-top:12px" data-action="finish" data-id="${r.id}">
-            🏁 Skuterni qaytarib olish</button>` : ""}
-
-          <div class="section-title" style="margin-top:20px"><span>Videolar</span></div>
-          ${videoBlock("Selfi ariza", "📹", r.video_selfie_url)}
-          ${videoBlock("Skuter holati", "🛴", r.video_scooter_url)}
-        </div>`;
+      detail = `<div class="rrow-detail">
+        ${badges.length ? `<div style="margin-bottom:10px">${badges.join("")}</div>` : ""}
+        <div class="kv"><span>Telefon</span><b>${esc(r.phone)}</b></div>
+        <div class="kv"><span>Pasport</span><b>${esc(r.passport)}</b></div>
+        <div class="kv"><span>Kunlik</span><b>${fmt(r.daily_rate)} so'm</b></div>
+        <div class="kv"><span>To'langan kunlar</span><b>${r.paid_days} kun</b></div>
+        <div class="kv"><span>Jami</span><b>${fmt(r.total_paid)} so'm</b></div>
+        <div class="kv"><span>${r.debt > 0 ? "Qarz" : "To'langan"}</span>
+          <b style="color:${r.debt > 0 ? 'var(--debt)' : 'var(--ok)'}">
+            ${r.debt > 0 ? fmt(r.debt) + " so'm (" + r.debt_days + " kun)" : r.paid_until}</b></div>
+        <div class="pay-row">
+          <input type="number" inputmode="numeric" placeholder="Summa" id="pay-${r.id}">
+          <button data-action="pay" data-id="${r.id}">Qabul</button>
+        </div>
+        <div class="quick-amounts">
+          <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate}">1 kun</button>
+          <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate*7}">1 hafta</button>
+          <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate*30}">1 oy</button>
+        </div>
+        <button class="copy-btn danger-btn" style="margin-top:12px" data-action="finish" data-id="${r.id}">🏁 Qaytarib olish</button>
+        <div class="section-title" style="margin-top:20px"><span>Videolar</span></div>
+        ${videoBlock("Selfi", "📹", r.video_selfie_url)}
+        ${videoBlock("Skuter", "🛴", r.video_scooter_url)}
+      </div>`;
     }
 
-    return `
-      <div class="rrow fade" id="row-${r.id}">
-        <div class="rrow-top" data-action="toggle" data-id="${r.id}">
-          <div>
-            <div class="rrow-name">${esc(r.full_name)}</div>
-            <div class="rrow-scooter">${esc(r.scooter_info)}</div>
-          </div>
-          <div class="rrow-status ${statusClass}">${statusHtml}</div>
-        </div>
-        ${detail}
-      </div>`;
-  }
-
-  function bindRowActions() {
-    document.querySelectorAll(".rlist").forEach(list => {
-      list.addEventListener("click", onRowClick);
-    });
+    return `<div class="rrow fade" id="row-${r.id}">
+      <div class="rrow-top" data-action="toggle" data-id="${r.id}">
+        <div><div class="rrow-name">${esc(r.full_name)}</div>
+        <div class="rrow-scooter">${esc(r.scooter_info)}</div></div>
+        <div class="rrow-status ${statusClass}">${statusHtml}</div>
+      </div>${detail}</div>`;
   }
 
   async function onRowClick(ev) {
@@ -739,65 +614,34 @@
     const action = el.dataset.action;
     const id = el.dataset.id ? Number(el.dataset.id) : null;
 
-    if (action === "toggle") {
-      hapticTap();
-      document.getElementById("row-" + id).classList.toggle("open");
-      return;
-    }
-    if (action === "copy") {
-      ev.stopPropagation();
-      navigator.clipboard?.writeText(el.dataset.link);
-      haptic("success");
-      toast("Havola nusxalandi");
-      return;
-    }
-    if (action === "quick") {
-      ev.stopPropagation();
-      hapticTap();
-      document.getElementById("pay-" + id).value = Math.round(Number(el.dataset.amount));
-      return;
-    }
+    if (action === "toggle") { hapticTap(); document.getElementById("row-"+id).classList.toggle("open"); return; }
+    if (action === "copy") { ev.stopPropagation(); navigator.clipboard?.writeText(el.dataset.link); haptic("success"); toast("Nusxalandi"); return; }
+    if (action === "quick") { ev.stopPropagation(); hapticTap(); document.getElementById("pay-"+id).value = Math.round(Number(el.dataset.amount)); return; }
     if (action === "pay") {
       ev.stopPropagation();
-      const input = document.getElementById("pay-" + id);
-      const amount = parseFloat(input.value);
-      if (!amount || amount <= 0) { haptic("error"); toast("Summa noto'g'ri", "err"); return; }
+      const amount = parseFloat(document.getElementById("pay-"+id).value);
+      if (!amount || amount <= 0) { haptic("error"); toast("Summa xato", "err"); return; }
       el.disabled = true;
-      const fd = new FormData();
-      fd.append("init_data", initData);
-      fd.append("rental_id", id);
-      fd.append("amount", amount);
-      try {
-        await api("/api/admin/payments", { method: "POST", body: fd });
-        haptic("success");
-        toast("To'lov qabul qilindi");
-        renderDashboard({ status: currentFilter });
-      } catch (e) {
-        haptic("error"); toast(e.message, "err"); el.disabled = false;
-      }
+      const fd = new FormData(); fd.append("init_data", initData); fd.append("rental_id", id); fd.append("amount", amount);
+      try { await api("/api/admin/payments", { method: "POST", body: fd });
+        haptic("success"); toast("To'lov qabul qilindi"); renderDashboard({ status: currentFilter });
+      } catch (e) { haptic("error"); toast(e.message, "err"); el.disabled = false; }
       return;
     }
     if (action === "finish") {
       ev.stopPropagation();
-      if (!confirm("Skuterni qaytarib olasizmi? Ijara tugatiladi.")) return;
-      const fd = new FormData();
-      fd.append("init_data", initData);
-      try {
-        await api("/api/admin/rentals/" + id + "/finish", { method: "POST", body: fd });
-        haptic("success");
-        toast("Ijara yakunlandi");
-        renderDashboard({ status: currentFilter });
+      if (!confirm("Qaytarib olasizmi?")) return;
+      const fd = new FormData(); fd.append("init_data", initData);
+      try { await api("/api/admin/rentals/"+id+"/finish", { method: "POST", body: fd });
+        haptic("success"); toast("Yakunlandi"); renderDashboard({ status: currentFilter });
       } catch (e) { haptic("error"); toast(e.message, "err"); }
       return;
     }
     if (action === "delete") {
       ev.stopPropagation();
-      if (!confirm("Ushbu arizani butunlay o'chirasizmi?")) return;
-      try {
-        await api("/api/admin/rentals/" + id + "?init_data=" + encodeURIComponent(initData), { method: "DELETE" });
-        haptic("success");
-        toast("O'chirildi");
-        renderDashboard({ status: currentFilter });
+      if (!confirm("O'chirasizmi?")) return;
+      try { await api("/api/admin/rentals/"+id+"?init_data="+encodeURIComponent(initData), { method: "DELETE" });
+        haptic("success"); toast("O'chirildi"); renderDashboard({ status: currentFilter });
       } catch (e) { haptic("error"); toast(e.message, "err"); }
       return;
     }
@@ -808,92 +652,62 @@
   // ============================================================
   function renderNewClientForm() {
     app.innerHTML = `
-      <div class="top fade">
-        <div>
-          <span class="role-badge">🛡 Admin paneli</span>
-          <div class="greet">Yangi mijoz</div>
-          <div class="sub">Mijoz va skuter ma'lumotlarini kiriting</div>
-        </div>
-      </div>
+      <div class="top fade"><div>
+        <span class="role-badge">🛡 ADMIN</span>
+        <div class="greet">Yangi mijoz</div>
+        <div class="sub">Ma'lumotlarni kiriting</div>
+      </div></div>
       <form id="new-form" class="fade">
-        <div class="field">
-          <label>Ism familya *</label>
-          <input name="full_name" required autocomplete="name" placeholder="Ali Valiyev">
-        </div>
-        <div class="field">
-          <label>Telefon raqami *</label>
-          <input name="phone" placeholder="+998 90 123 45 67" required inputmode="tel">
-        </div>
-        <div class="field">
-          <label>Pasport seriyasi</label>
-          <input name="passport" placeholder="AB1234567">
-        </div>
-        <div class="field">
-          <label>Skuter modeli / raqami *</label>
-          <input name="scooter_info" placeholder="Xiaomi Pro 2 · A123BC" required>
-        </div>
-        <div class="field">
-          <label>Kunlik narx (so'm) *</label>
-          <input name="daily_rate" type="number" inputmode="numeric" placeholder="50000" required min="1">
-        </div>
-        <div class="field">
-          <label>To'lov turi</label>
+        <div class="field"><label>Ism familya *</label>
+          <input name="full_name" required placeholder="Ali Valiyev"></div>
+        <div class="field"><label>Telefon *</label>
+          <input name="phone" required inputmode="tel" placeholder="+998 90 123 45 67"></div>
+        <div class="field"><label>Pasport</label>
+          <input name="passport" placeholder="AB1234567"></div>
+        <div class="field"><label>Skuter *</label>
+          <input name="scooter_info" required placeholder="Xiaomi · A123BC"></div>
+        <div class="field"><label>Kunlik narx *</label>
+          <input name="daily_rate" type="number" required min="1" placeholder="50000"></div>
+        <div class="field"><label>To'lov turi</label>
           <select name="payment_type">
             <option value="kunlik">Kunlik</option>
             <option value="haftalik">Haftalik</option>
             <option value="oylik">Oylik</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>📹 Video ariza — Selfi (yuz + pasport)</label>
-          <input name="video_selfie" type="file" accept="video/*" capture="user">
-          <div class="hint">Maks. 50MB · mp4, mov, webm</div>
-        </div>
-        <div class="field">
-          <label>🛴 Video — Skuter holati</label>
-          <input name="video_scooter" type="file" accept="video/*" capture="environment">
-          <div class="hint">Maks. 50MB · mp4, mov, webm</div>
-        </div>
-        <div class="field">
-          <label>Qo'shimcha izoh</label>
-          <textarea name="notes" placeholder="Masalan: yashil rang, zaryadlovchi bilan..."></textarea>
-        </div>
-        <button type="submit" class="submit-btn" id="submit-btn">Mijozni qo'shish</button>
+          </select></div>
+        <div class="field"><label>📹 Selfi video</label>
+          <input name="video_selfie" type="file" accept="video/*" capture="user"></div>
+        <div class="field"><label>🛴 Skuter video</label>
+          <input name="video_scooter" type="file" accept="video/*" capture="environment"></div>
+        <div class="field"><label>Izoh</label>
+          <textarea name="notes"></textarea></div>
+        <button type="submit" class="submit-btn" id="submit-btn">Qo'shish</button>
       </form>
-      <div id="result"></div>
-    `;
-    document.getElementById("new-form").addEventListener("submit", handleNewClient);
-  }
-
-  async function handleNewClient(ev) {
-    ev.preventDefault();
-    const btn = document.getElementById("submit-btn");
-    btn.disabled = true; btn.textContent = "Yuborilmoqda...";
-    const fd = new FormData(ev.target);
-    fd.append("init_data", initData);
-    try {
-      const rental = await api("/api/admin/rentals", { method: "POST", body: fd });
-      haptic("success");
-      document.getElementById("result").innerHTML = `
-        <div class="hero fade" style="margin-top:20px">
-          <div class="label">Muvaffaqiyatli</div>
-          <div class="num ok" style="font-size:22px">${esc(rental.full_name)} qo'shildi</div>
-          <div class="cap">Quyidagi havolani mijozga yuboring:</div>
-        </div>
-        <div class="link-box">${esc(rental.reg_link)}</div>
-        <button class="copy-btn" id="copy-new-link">📋 Havolani nusxalash</button>`;
-      document.getElementById("copy-new-link").addEventListener("click", () => {
-        navigator.clipboard?.writeText(rental.reg_link);
+      <div id="result"></div>`;
+    document.getElementById("new-form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const btn = document.getElementById("submit-btn");
+      btn.disabled = true; btn.textContent = "Yuborilmoqda...";
+      const fd = new FormData(ev.target);
+      fd.append("init_data", initData);
+      try {
+        const rental = await api("/api/admin/rentals", { method: "POST", body: fd });
         haptic("success");
-        toast("Havola nusxalandi");
-      });
-      ev.target.reset();
-    } catch (e) {
-      haptic("error");
-      document.getElementById("result").innerHTML = `<p class="error">${esc(e.message)}</p>`;
-    } finally {
-      btn.disabled = false; btn.textContent = "Mijozni qo'shish";
-    }
+        document.getElementById("result").innerHTML = `
+          <div class="hero fade" style="margin-top:20px">
+            <div class="label">Muvaffaqiyatli</div>
+            <div class="num ok" style="font-size:22px">${esc(rental.full_name)} qo'shildi</div>
+            <div class="cap">Havolani mijozga yuboring:</div>
+          </div>
+          <div class="link-box">${esc(rental.reg_link)}</div>
+          <button class="copy-btn" id="copy-new-link">📋 Nusxalash</button>`;
+        document.getElementById("copy-new-link").addEventListener("click", () => {
+          navigator.clipboard?.writeText(rental.reg_link);
+          toast("Nusxalandi");
+        });
+        ev.target.reset();
+      } catch (e) { haptic("error"); document.getElementById("result").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+      finally { btn.disabled = false; btn.textContent = "Qo'shish"; }
+    });
   }
 
   // ============================================================
@@ -901,21 +715,20 @@
   // ============================================================
   async function renderRenter(fallbackName = "") {
     app.innerHTML = `<div class="skel"></div><div class="skel"></div>`;
-
     let d;
     try {
       d = await api("/api/me?init_data=" + encodeURIComponent(initData));
     } catch (e) {
       app.innerHTML = `
         <div class="top fade" style="display:block">
-          <span class="role-badge" style="background:var(--blue-soft);color:var(--blue)">👤 Foydalanuvchi</span>
+          <span class="role-badge user">👤 MIJOZ</span>
           <div class="greet">${esc(fallbackName || "Salom")}</div>
           <div class="sub">Siz mijoz sifatida ro'yxatdan o'tmagansiz</div>
         </div>
         <div class="hero fade">
           <div class="label">Ma'lumot yo'q</div>
           <div class="num blue" style="font-size:22px">Skuter olinmagan</div>
-          <div class="cap">Skuter ijarasi uchun admin bilan bog'laning.</div>
+          <div class="cap">Admin bilan bog'laning.</div>
         </div>`;
       return;
     }
@@ -937,85 +750,51 @@
     }
 
     const paymentsHtml = d.payments.length
-      ? d.payments.map(p => `
-          <div class="payment-item fade">
-            <div class="payment-amount">${fmt(p.amount)} so'm</div>
-            <div class="payment-meta">${p.date}<br>${p.days_covered} kunga</div>
-          </div>`).join("")
+      ? d.payments.map(p => `<div class="payment-item fade">
+          <div class="payment-amount">${fmt(p.amount)} so'm</div>
+          <div class="payment-meta">${p.date}<br>${p.days_covered} kunga</div>
+        </div>`).join("")
       : `<p class="empty">Hali to'lov qilinmagan</p>`;
 
-    const videoHtml = (d.has_selfie || d.has_scooter_video)
-      ? `
-        <div class="section-title fade"><span>Yuklangan videolar</span></div>
-        ${videoBlock("Selfi ariza", "📹", d.video_selfie_url)}
-        ${videoBlock("Skuter holati", "🛴", d.video_scooter_url)}
-      `
-      : "";
+    const videoHtml = (d.has_selfie || d.has_scooter_video) ? `
+      <div class="section-title fade"><span>Videolar</span></div>
+      ${videoBlock("Selfi", "📹", d.video_selfie_url)}
+      ${videoBlock("Skuter", "🛴", d.video_scooter_url)}` : "";
 
     app.innerHTML = `
       <div class="top fade" style="display:block">
-        <span class="role-badge" style="background:var(--blue-soft);color:var(--blue)">👤 Mijoz</span>
+        <span class="role-badge user">👤 MIJOZ</span>
         <div class="greet">${esc(d.full_name)}</div>
         <div class="sub">${esc(d.scooter_info)} · ${fmt(d.daily_rate)} so'm/kun</div>
       </div>
-
       <div class="hero fade">
         <div class="label">${heroLabel}</div>
         <div class="num ${heroClass}">${heroNum}</div>
         <div class="cap">${heroCap}</div>
       </div>
-
-      <div class="section-title fade"><span>Skuter ma'lumotlari</span></div>
+      <div class="section-title fade"><span>Skuter</span></div>
       <div class="rrow fade" style="padding:16px 18px">
         <div class="kv"><span>🛴 Skuter</span><b>${esc(d.scooter_info)}</b></div>
-        <div class="kv"><span>💰 Kunlik narx</span><b>${fmt(d.daily_rate)} so'm</b></div>
-        <div class="kv"><span>📅 To'lov turi</span><b>${esc(d.payment_type || "kunlik")}</b></div>
+        <div class="kv"><span>💰 Kunlik</span><b>${fmt(d.daily_rate)} so'm</b></div>
         <div class="kv"><span>🚀 Boshlangan</span><b>${d.start_date}</b></div>
-        <div class="kv"><span>📆 To'langan sana</span><b>${d.paid_until}</b></div>
-        ${d.notes ? `<div class="kv"><span>📝 Izoh</span><b>${esc(d.notes)}</b></div>` : ""}
+        <div class="kv"><span>📆 To'langan</span><b>${d.paid_until}</b></div>
       </div>
-
       <div class="stat-grid fade">
-        <div class="stat-card">
-          <div class="k">Jami to'langan</div>
-          <div class="v amber">${fmt(d.total_paid)}</div>
-        </div>
-        <div class="stat-card">
-          <div class="k">To'langan kunlar</div>
-          <div class="v">${d.paid_days} kun</div>
-        </div>
+        <div class="stat-card"><div class="k">Jami to'langan</div><div class="v amber">${fmt(d.total_paid)}</div></div>
+        <div class="stat-card"><div class="k">To'langan kunlar</div><div class="v">${d.paid_days} kun</div></div>
         ${hasDebt ? `
-        <div class="stat-card">
-          <div class="k">Qarz kunlari</div>
-          <div class="v debt">${d.debt_days} kun</div>
-        </div>
-        <div class="stat-card">
-          <div class="k">To'lash kerak</div>
-          <div class="v debt" style="font-size:18px">${fmt(d.debt)}</div>
-        </div>` : `
-        <div class="stat-card">
-          <div class="k">Qolgan kunlar</div>
-          <div class="v ok">${d.days_left} kun</div>
-        </div>
-        <div class="stat-card">
-          <div class="k">Keyingi to'lov</div>
-          <div class="v ok" style="font-size:16px">${d.paid_until}</div>
-        </div>`}
+          <div class="stat-card"><div class="k">Qarz kunlari</div><div class="v debt">${d.debt_days} kun</div></div>
+          <div class="stat-card"><div class="k">To'lash kerak</div><div class="v debt" style="font-size:18px">${fmt(d.debt)}</div></div>
+        ` : `
+          <div class="stat-card"><div class="k">Qolgan kunlar</div><div class="v ok">${d.days_left} kun</div></div>
+          <div class="stat-card"><div class="k">Keyingi to'lov</div><div class="v ok" style="font-size:16px">${d.paid_until}</div></div>
+        `}
       </div>
-
       ${videoHtml}
-
-      <div class="section-title fade">
-        <span>To'lovlar tarixi</span>
-        <span class="count">${d.payments.length}</span>
-      </div>
-      <div>${paymentsHtml}</div>
-    `;
+      <div class="section-title fade"><span>To'lovlar tarixi</span><span class="count">${d.payments.length}</span></div>
+      <div>${paymentsHtml}</div>`;
   }
 
-  // ============================================================
-  // START
-  // ============================================================
   boot();
 </script>
 </body>

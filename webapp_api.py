@@ -146,13 +146,17 @@ def serialize_rental(r: Rental) -> dict:
         "status": r.status,
         "start_date": r.start_date.strftime("%d.%m.%Y") if r.start_date else "—",
         "paid_until": r.paid_until.strftime("%d.%m.%Y") if r.paid_until else "—",
+        "paid_until_iso": r.paid_until.isoformat() if r.paid_until else None,
         "total_paid": r.total_paid(),
         "paid_days": r.paid_days(),
         "debt": r.debt_amount(),
         "debt_days": r.debt_days(),
         "days_left": r.days_left(),
-        "video_selfie": r.video_selfie,
-        "video_scooter": r.video_scooter,
+        # Video URL'lar (to'liq yo'l)
+        "video_selfie_url": r.video_selfie if r.video_selfie else None,
+        "video_scooter_url": r.video_scooter if r.video_scooter else None,
+        "has_selfie": bool(r.video_selfie),
+        "has_scooter_video": bool(r.video_scooter),
         "notes": r.notes,
         "reg_link": (
             f"https://t.me/{BOT_USERNAME}?start=reg_{r.id}"

@@ -30,9 +30,15 @@
   @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .fade{animation:fadeUp .35s cubic-bezier(.2,.7,.3,1) both}
 
-  .top{margin-bottom:22px}
+  .top{margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
   .top .greet{font-size:24px;font-weight:700;letter-spacing:-.02em}
   .top .sub{font-size:14px;color:var(--muted);margin-top:4px}
+  .icon-btn{background:var(--surface);border:1px solid var(--line-soft);color:var(--muted);
+    width:38px;height:38px;border-radius:12px;font-size:16px;display:flex;
+    align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s,background .15s}
+  .icon-btn:active{transform:scale(.92);background:var(--surface-2)}
+  .icon-btn.spinning{animation:spin .7s linear}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   .hero{position:relative;background:linear-gradient(155deg,var(--surface-2),var(--surface) 70%);
     border:1px solid var(--line);border-radius:var(--radius-xl);padding:26px 22px;
@@ -54,6 +60,20 @@
     display:flex;justify-content:space-between;align-items:center}
   .section-title .count{background:var(--surface);border:1px solid var(--line);
     border-radius:100px;padding:3px 10px;font-size:11px;color:var(--muted)}
+
+  .search-wrap{position:relative;margin-bottom:12px}
+  .search-wrap input{width:100%;background:var(--surface);border:1px solid var(--line-soft);
+    border-radius:var(--radius-md);color:var(--text);padding:13px 14px 13px 40px;
+    font-size:15px;outline:none;transition:border-color .15s}
+  .search-wrap input:focus{border-color:var(--amber)}
+  .search-wrap .sicon{position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    color:var(--muted-2);font-size:15px;pointer-events:none}
+
+  .filter-row{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
+  .filter-chip{flex-shrink:0;background:var(--surface);border:1px solid var(--line-soft);
+    color:var(--muted);font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:100px;
+    transition:all .15s;white-space:nowrap}
+  .filter-chip.active{background:var(--amber);color:#1a1300;border-color:var(--amber)}
 
   .rlist{display:flex;flex-direction:column;gap:10px}
   .rrow{background:var(--surface);border:1px solid var(--line-soft);
@@ -83,6 +103,7 @@
     border:1px solid var(--line);background:var(--surface-2);color:var(--text);
     font-size:14px;font-weight:600;transition:background .15s}
   .copy-btn:active{background:var(--line)}
+  .danger-btn{color:var(--debt) !important}
 
   .pay-row{display:flex;gap:8px;margin-top:14px}
   .pay-row input{flex:1;min-width:0;background:var(--bg-2);border:1px solid var(--line);
@@ -110,6 +131,7 @@
   .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--amber)}
   .field input[type="file"]{padding:12px;font-size:13px;color:var(--muted)}
   .field textarea{resize:vertical;min-height:70px}
+  .field .hint{font-size:11.5px;color:var(--muted-2);margin-top:6px}
 
   .submit-btn{width:100%;padding:16px;border-radius:var(--radius-md);border:none;
     background:var(--amber);color:#1a1300;font-size:16px;font-weight:700;
@@ -185,6 +207,18 @@
   .video-header .icon{font-size:16px;margin-right:8px}
   .video-card video{width:100%;display:block;background:#000;max-height:420px}
   .video-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px}
+
+  .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));
+    transform:translateX(-50%) translateY(20px);background:var(--surface-2);
+    border:1px solid var(--line);color:var(--text);padding:12px 20px;border-radius:100px;
+    font-size:13.5px;font-weight:600;z-index:200;opacity:0;transition:all .25s;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{border-color:rgba(255,107,107,.4);color:var(--debt)}
+  .toast.ok{border-color:rgba(52,211,153,.4);color:var(--ok)}
+
+  .login-box{max-width:340px;margin:60px auto 0}
+  .login-box .field input{text-align:center;letter-spacing:.1em}
 </style>
 </head>
 <body>
@@ -193,8 +227,9 @@
   </div>
 
   <div id="tabbar" class="tabbar hidden">
-    <button id="tab-dash" class="active" onclick="showTab('dash')">📊 Mijozlar</button>
-    <button id="tab-new" onclick="showTab('new')">➕ Yangi mijoz</button>
+    <button id="tab-dash" class="active" data-tab="dash">📊 Mijozlar</button>
+    <button id="tab-new" data-tab="new">➕ Yangi</button>
+    <button id="tab-history" data-tab="history">🗂 Tarix</button>
   </div>
 
 <script>
@@ -206,9 +241,14 @@
   tg?.setBackgroundColor?.("#0e1118");
 
   const initData = tg?.initData || "";
+  let adminToken = sessionStorage.getItem("admin_token") || "";
   const app = document.getElementById("app");
   const tabbar = document.getElementById("tabbar");
   const ORIGIN = window.location.origin;
+
+  let currentTab = "dash";
+  let currentFilter = "";     // "" = faol+kutilmoqda
+  let currentSearch = "";
 
   const fmt = n => Math.round(Number(n) || 0).toLocaleString("uz-UZ");
   const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
@@ -221,94 +261,190 @@
     return ORIGIN + u;
   };
 
+  function toast(msg, kind = "ok") {
+    const t = document.createElement("div");
+    t.className = `toast ${kind}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add("show"));
+    setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 300); }, 2600);
+  }
+
   // ================= API =================
   async function api(path, opts = {}) {
-    const res = await fetch(path, opts);
+    const headers = opts.headers || {};
+    if (adminToken) headers["X-Admin-Token"] = adminToken;
+    const res = await fetch(path, { ...opts, headers });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || "Xatolik yuz berdi");
+      throw new Error(body.detail || `Xatolik (${res.status})`);
     }
+    if (res.status === 204) return null;
     return res.json();
   }
 
   // ================= BOOT =================
   async function boot() {
-    // 1) Telegram yo'q
-    if (!initData) {
-      app.innerHTML = `
-        <div class="hero fade">
-          <div class="label">Diqqat</div>
-          <div class="num" style="font-size:22px">Telegram ichida oching</div>
-          <div class="cap">Bu sahifa faqat Telegram WebApp orqali ishlaydi.</div>
-        </div>`;
+    if (!initData && !adminToken) {
+      renderLogin();
       return;
     }
 
     try {
-      // 2) Kim ekanini aniqlash
       const who = await api("/api/whoami?init_data=" + encodeURIComponent(initData));
 
-      // 🛡 ADMIN — to'g'ridan-to'g'ri admin panel
       if (who.is_admin) {
         tabbar.classList.remove("hidden");
-        showTab("dash");
+        setActiveTab("dash");
         return;
       }
 
-      // 👤 USER — shaxsiy kabinet
-      await renderRenter(who.name || "");
+      if (!initData) {
+        // adminToken bor lekin sessiya eskirgan
+        sessionStorage.removeItem("admin_token");
+        adminToken = "";
+        renderLogin("Sessiya tugagan. Qayta kiring.");
+        return;
+      }
 
+      await renderRenter(who.name || "");
     } catch (e) {
       app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
     }
   }
 
-  // ================= ADMIN TABS =================
-  function showTab(tab) {
-    hapticTap();
-    document.getElementById("tab-dash").classList.toggle("active", tab === "dash");
-    document.getElementById("tab-new").classList.toggle("active", tab === "new");
-    if (tab === "dash") renderDashboard();
-    else renderNewClientForm();
+  // ================= PAROL ORQALI KIRISH (Telegram tashqarisida) =================
+  function renderLogin(notice = "") {
+    app.innerHTML = `
+      <div class="login-box fade">
+        <div class="top" style="display:block;text-align:center">
+          <div class="greet">🛴 Skuter Admin</div>
+          <div class="sub">Telegram tashqarisida kirish uchun parol kiriting</div>
+        </div>
+        ${notice ? `<p class="notice" style="text-align:center;color:var(--amber)">${esc(notice)}</p>` : ""}
+        <form id="login-form">
+          <div class="field">
+            <label>Parol</label>
+            <input name="password" type="password" required autofocus>
+          </div>
+          <button type="submit" class="submit-btn" id="login-btn">Kirish</button>
+        </form>
+        <div id="login-error"></div>
+      </div>`;
+    document.getElementById("login-form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const btn = document.getElementById("login-btn");
+      btn.disabled = true; btn.textContent = "Tekshirilmoqda...";
+      const fd = new FormData(ev.target);
+      try {
+        const res = await api("/api/admin/login", { method: "POST", body: fd });
+        adminToken = res.token;
+        sessionStorage.setItem("admin_token", adminToken);
+        haptic("success");
+        tabbar.classList.remove("hidden");
+        setActiveTab("dash");
+      } catch (e) {
+        haptic("error");
+        document.getElementById("login-error").innerHTML = `<p class="error">${esc(e.message)}</p>`;
+        btn.disabled = false; btn.textContent = "Kirish";
+      }
+    });
   }
 
+  function logout() {
+    sessionStorage.removeItem("admin_token");
+    adminToken = "";
+    api("/api/admin/logout", { method: "POST" }).catch(() => {});
+    tabbar.classList.add("hidden");
+    renderLogin("Chiqdingiz.");
+  }
+
+  // ================= ADMIN TABS =================
+  function setActiveTab(tab) {
+    hapticTap();
+    currentTab = tab;
+    document.getElementById("tab-dash").classList.toggle("active", tab === "dash");
+    document.getElementById("tab-new").classList.toggle("active", tab === "new");
+    document.getElementById("tab-history").classList.toggle("active", tab === "history");
+    if (tab === "dash") renderDashboard();
+    else if (tab === "history") renderDashboard({ status: "tugagan" });
+    else renderNewClientForm();
+  }
+  tabbar.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("button[data-tab]");
+    if (btn) setActiveTab(btn.dataset.tab);
+  });
+
   // ================= ADMIN: DASHBOARD =================
-  async function renderDashboard() {
+  async function renderDashboard(opts = {}) {
+    const isHistory = opts.status === "tugagan";
+    currentFilter = isHistory ? "tugagan" : (opts.status ?? currentFilter);
     app.innerHTML = `<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
     try {
-      const rentals = await api("/api/admin/rentals?init_data=" + encodeURIComponent(initData));
-      const active = rentals.filter(r => r.status === "faol");
-      const pending = rentals.filter(r => r.status === "kutilmoqda");
-      const debtors = active.filter(r => r.debt > 0);
-      const totalDebt = debtors.reduce((s, r) => s + r.debt, 0);
-      const totalRevenue = active.reduce((s, r) => s + r.total_paid, 0);
+      const params = new URLSearchParams({ init_data: initData });
+      if (currentFilter) params.set("status", currentFilter);
+      if (currentSearch) params.set("search", currentSearch);
+      const rentals = await api("/api/admin/rentals?" + params.toString());
+
+      let statsHtml = "";
+      if (!isHistory) {
+        const active = rentals.filter(r => r.status === "faol");
+        const pending = rentals.filter(r => r.status === "kutilmoqda");
+        const debtors = active.filter(r => r.debt > 0);
+        const totalDebt = debtors.reduce((s, r) => s + r.debt, 0);
+        const totalRevenue = active.reduce((s, r) => s + r.total_paid, 0);
+        statsHtml = `
+          <div class="top fade">
+            <div>
+              <span class="role-badge">🛡 Admin paneli</span>
+              <div class="greet">Nazorat</div>
+              <div class="sub">${active.length} faol · ${pending.length} kutilmoqda</div>
+            </div>
+            <button class="icon-btn" id="refresh-btn" title="Yangilash">⟳</button>
+          </div>
+          <div class="stat-grid fade">
+            <div class="stat-card">
+              <div class="k">Umumiy qarz</div>
+              <div class="v ${totalDebt > 0 ? 'debt' : 'ok'}">${fmt(totalDebt)}</div>
+            </div>
+            <div class="stat-card">
+              <div class="k">Jami tushum</div>
+              <div class="v amber">${fmt(totalRevenue)}</div>
+            </div>
+            <div class="stat-card">
+              <div class="k">Qarzdorlar</div>
+              <div class="v ${debtors.length ? 'debt' : 'ok'}">${debtors.length}</div>
+            </div>
+            <div class="stat-card">
+              <div class="k">Faol ijaralar</div>
+              <div class="v">${active.length}</div>
+            </div>
+          </div>
+          <div class="filter-row">
+            ${["", "faol", "kutilmoqda"].map(s => `
+              <button class="filter-chip ${currentFilter === s ? 'active' : ''}" data-filter="${s}">
+                ${s === "" ? "Hammasi" : s === "faol" ? "Faol" : "Kutilmoqda"}
+              </button>`).join("")}
+          </div>`;
+      } else {
+        statsHtml = `
+          <div class="top fade">
+            <div>
+              <span class="role-badge">🗂 Tarix</span>
+              <div class="greet">Yakunlangan ijaralar</div>
+              <div class="sub">${rentals.length} ta</div>
+            </div>
+            <button class="icon-btn" id="refresh-btn" title="Yangilash">⟳</button>
+          </div>`;
+      }
 
       app.innerHTML = `
-        <div class="top fade">
-          <span class="role-badge">🛡 Admin paneli</span>
-          <div class="greet">Nazorat</div>
-          <div class="sub">${active.length} faol · ${pending.length} kutilmoqda · ${rentals.length} jami</div>
+        ${statsHtml}
+        <div class="search-wrap fade">
+          <span class="sicon">🔍</span>
+          <input id="search-input" placeholder="Ism, telefon yoki skuter bo'yicha qidirish..."
+                 value="${esc(currentSearch)}">
         </div>
-
-        <div class="stat-grid fade">
-          <div class="stat-card">
-            <div class="k">Umumiy qarz</div>
-            <div class="v ${totalDebt > 0 ? 'debt' : 'ok'}">${fmt(totalDebt)}</div>
-          </div>
-          <div class="stat-card">
-            <div class="k">Jami tushum</div>
-            <div class="v amber">${fmt(totalRevenue)}</div>
-          </div>
-          <div class="stat-card">
-            <div class="k">Qarzdorlar</div>
-            <div class="v ${debtors.length ? 'debt' : 'ok'}">${debtors.length}</div>
-          </div>
-          <div class="stat-card">
-            <div class="k">Faol ijaralar</div>
-            <div class="v">${active.length}</div>
-          </div>
-        </div>
-
         <div class="section-title fade">
           <span>Mijozlar</span>
           <span class="count">${rentals.length}</span>
@@ -316,9 +452,30 @@
         <div class="rlist">
           ${rentals.length
             ? rentals.map(rentalRowHtml).join("")
-            : `<p class="empty">Hali mijozlar yo'q.<br>"Yangi mijoz" bo'limidan qo'shing.</p>`}
+            : `<p class="empty">Hech narsa topilmadi.</p>`}
         </div>
       `;
+
+      document.getElementById("refresh-btn")?.addEventListener("click", (ev) => {
+        ev.currentTarget.classList.add("spinning");
+        renderDashboard(isHistory ? { status: "tugagan" } : {});
+      });
+
+      document.querySelectorAll(".filter-chip").forEach(chip => {
+        chip.addEventListener("click", () => renderDashboard({ status: chip.dataset.filter }));
+      });
+
+      let searchTimer;
+      document.getElementById("search-input")?.addEventListener("input", (ev) => {
+        clearTimeout(searchTimer);
+        const val = ev.target.value;
+        searchTimer = setTimeout(() => {
+          currentSearch = val;
+          renderDashboard(isHistory ? { status: "tugagan" } : { status: currentFilter });
+        }, 350);
+      });
+
+      bindRowActions();
     } catch (e) {
       app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
     }
@@ -328,17 +485,13 @@
     if (!url) {
       return `
         <div class="video-card">
-          <div class="video-header">
-            <span><span class="icon">${icon}</span>${title}</span>
-          </div>
+          <div class="video-header"><span><span class="icon">${icon}</span>${title}</span></div>
           <div class="video-empty">Video yuklanmagan</div>
         </div>`;
     }
     return `
       <div class="video-card">
-        <div class="video-header">
-          <span><span class="icon">${icon}</span>${title}</span>
-        </div>
+        <div class="video-header"><span><span class="icon">${icon}</span>${title}</span></div>
         <video controls playsinline preload="metadata" src="${esc(videoUrl(url))}"></video>
       </div>`;
   }
@@ -363,7 +516,15 @@
             Mijoz hali botni ishga tushirmagan. Quyidagi havolani yuboring:
           </p>
           <div class="link-box">${esc(r.reg_link)}</div>
-          <button class="copy-btn" onclick="copyLink(event,'${esc(r.reg_link)}')">📋 Havolani nusxalash</button>
+          <button class="copy-btn" data-action="copy" data-link="${esc(r.reg_link)}">📋 Havolani nusxalash</button>
+          <button class="copy-btn danger-btn" data-action="delete" data-id="${r.id}">🗑 O'chirish</button>
+        </div>`;
+    } else if (r.status === "tugagan") {
+      detail = `
+        <div class="rrow-detail">
+          <div class="kv"><span>Telefon</span><b>${esc(r.phone)}</b></div>
+          <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)} so'm</b></div>
+          <div class="kv"><span>To'langan kunlar</span><b>${r.paid_days} kun</b></div>
         </div>`;
     } else {
       const progressPct = r.paid_days > 0
@@ -388,34 +549,28 @@
             </b>
           </div>
           ${r.debt === 0 && r.days_left > 0
-            ? `<div class="kv"><span>Yana yetadi</span><b>${r.days_left} kun</b></div>`
-            : ""}
+            ? `<div class="kv"><span>Yana yetadi</span><b>${r.days_left} kun</b></div>` : ""}
 
           ${r.paid_days > 0 || r.debt_days > 0 ? `
           <div class="progress-wrap">
-            <div class="progress-bar">
-              <div class="progress-fill" style="width:${progressPct}%"></div>
-            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${progressPct}%"></div></div>
           </div>` : ""}
 
           <div class="pay-row">
             <input type="number" inputmode="numeric" placeholder="Summa (so'm)" id="pay-${r.id}">
-            <button onclick="submitPayment(event,${r.id},${r.daily_rate})">Qabul</button>
+            <button data-action="pay" data-id="${r.id}">Qabul</button>
           </div>
           <div class="quick-amounts">
-            <button class="quick-btn" onclick="quickAmount(${r.id},${r.daily_rate * 1})">1 kun</button>
-            <button class="quick-btn" onclick="quickAmount(${r.id},${r.daily_rate * 7})">1 hafta</button>
-            <button class="quick-btn" onclick="quickAmount(${r.id},${r.daily_rate * 30})">1 oy</button>
+            <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate * 1}">1 kun</button>
+            <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate * 7}">1 hafta</button>
+            <button class="quick-btn" data-action="quick" data-id="${r.id}" data-amount="${r.daily_rate * 30}">1 oy</button>
           </div>
 
           ${r.status === "faol" ? `
-          <button class="copy-btn" style="margin-top:12px;color:var(--debt)"
-            onclick="finishRental(event,${r.id})">🏁 Skuterni qaytarib olish</button>
-          ` : ""}
+          <button class="copy-btn danger-btn" style="margin-top:12px" data-action="finish" data-id="${r.id}">
+            🏁 Skuterni qaytarib olish</button>` : ""}
 
-          <div class="section-title" style="margin-top:20px">
-            <span>Videolar</span>
-          </div>
+          <div class="section-title" style="margin-top:20px"><span>Videolar</span></div>
           ${videoBlock("Selfi ariza", "📹", r.video_selfie_url)}
           ${videoBlock("Skuter holati", "🛴", r.video_scooter_url)}
         </div>`;
@@ -423,7 +578,7 @@
 
     return `
       <div class="rrow fade" id="row-${r.id}">
-        <div class="rrow-top" onclick="toggleRow(${r.id})">
+        <div class="rrow-top" data-action="toggle" data-id="${r.id}">
           <div>
             <div class="rrow-name">${esc(r.full_name)}</div>
             <div class="rrow-scooter">${esc(r.scooter_info)}</div>
@@ -434,61 +589,92 @@
       </div>`;
   }
 
-  function toggleRow(id) {
-    hapticTap();
-    document.getElementById("row-" + id).classList.toggle("open");
+  // Bitta delegatsiya qilingan click handler — barcha qator ichidagi tugmalarni boshqaradi
+  function bindRowActions() {
+    document.querySelectorAll(".rlist").forEach(list => {
+      list.addEventListener("click", onRowClick);
+    });
   }
 
-  function quickAmount(id, amount) {
-    hapticTap();
-    document.getElementById("pay-" + id).value = Math.round(amount);
-  }
+  async function onRowClick(ev) {
+    const el = ev.target.closest("[data-action]");
+    if (!el) return;
+    const action = el.dataset.action;
+    const id = el.dataset.id ? Number(el.dataset.id) : null;
 
-  function copyLink(ev, link) {
-    ev.stopPropagation();
-    navigator.clipboard?.writeText(link);
-    haptic("success");
-  }
-
-  async function submitPayment(ev, rentalId, dailyRate) {
-    ev.stopPropagation();
-    const input = document.getElementById("pay-" + rentalId);
-    const amount = parseFloat(input.value);
-    if (!amount || amount <= 0) { haptic("error"); return; }
-    const btn = ev.currentTarget;
-    btn.disabled = true;
-    const fd = new FormData();
-    fd.append("init_data", initData);
-    fd.append("rental_id", rentalId);
-    fd.append("amount", amount);
-    try {
-      await api("/api/admin/payments", { method: "POST", body: fd });
-      haptic("success");
-      renderDashboard();
-    } catch (e) {
-      haptic("error"); alert(e.message); btn.disabled = false;
+    if (action === "toggle") {
+      hapticTap();
+      document.getElementById("row-" + id).classList.toggle("open");
+      return;
     }
-  }
-
-  async function finishRental(ev, rentalId) {
-    ev.stopPropagation();
-    if (!confirm("Skuterni qaytarib olasizmi? Ijara tugatiladi.")) return;
-    const fd = new FormData();
-    fd.append("init_data", initData);
-    try {
-      await api("/api/admin/rentals/" + rentalId + "/finish", { method: "POST", body: fd });
+    if (action === "copy") {
+      ev.stopPropagation();
+      navigator.clipboard?.writeText(el.dataset.link);
       haptic("success");
-      renderDashboard();
-    } catch (e) { haptic("error"); alert(e.message); }
+      toast("Havola nusxalandi");
+      return;
+    }
+    if (action === "quick") {
+      ev.stopPropagation();
+      hapticTap();
+      document.getElementById("pay-" + id).value = Math.round(Number(el.dataset.amount));
+      return;
+    }
+    if (action === "pay") {
+      ev.stopPropagation();
+      const input = document.getElementById("pay-" + id);
+      const amount = parseFloat(input.value);
+      if (!amount || amount <= 0) { haptic("error"); toast("Summa noto'g'ri", "err"); return; }
+      el.disabled = true;
+      const fd = new FormData();
+      fd.append("init_data", initData);
+      fd.append("rental_id", id);
+      fd.append("amount", amount);
+      try {
+        await api("/api/admin/payments", { method: "POST", body: fd });
+        haptic("success");
+        toast("To'lov qabul qilindi");
+        renderDashboard({ status: currentFilter });
+      } catch (e) {
+        haptic("error"); toast(e.message, "err"); el.disabled = false;
+      }
+      return;
+    }
+    if (action === "finish") {
+      ev.stopPropagation();
+      if (!confirm("Skuterni qaytarib olasizmi? Ijara tugatiladi.")) return;
+      const fd = new FormData();
+      fd.append("init_data", initData);
+      try {
+        await api("/api/admin/rentals/" + id + "/finish", { method: "POST", body: fd });
+        haptic("success");
+        toast("Ijara yakunlandi");
+        renderDashboard({ status: currentFilter });
+      } catch (e) { haptic("error"); toast(e.message, "err"); }
+      return;
+    }
+    if (action === "delete") {
+      ev.stopPropagation();
+      if (!confirm("Ushbu arizani butunlay o'chirasizmi?")) return;
+      try {
+        await api("/api/admin/rentals/" + id + "?init_data=" + encodeURIComponent(initData), { method: "DELETE" });
+        haptic("success");
+        toast("O'chirildi");
+        renderDashboard({ status: currentFilter });
+      } catch (e) { haptic("error"); toast(e.message, "err"); }
+      return;
+    }
   }
 
   // ================= ADMIN: YANGI MIJOZ =================
   function renderNewClientForm() {
     app.innerHTML = `
       <div class="top fade">
-        <span class="role-badge">🛡 Admin paneli</span>
-        <div class="greet">Yangi mijoz</div>
-        <div class="sub">Mijoz va skuter ma'lumotlarini kiriting</div>
+        <div>
+          <span class="role-badge">🛡 Admin paneli</span>
+          <div class="greet">Yangi mijoz</div>
+          <div class="sub">Mijoz va skuter ma'lumotlarini kiriting</div>
+        </div>
       </div>
       <form id="new-form" class="fade">
         <div class="field">
@@ -509,7 +695,7 @@
         </div>
         <div class="field">
           <label>Kunlik narx (so'm) *</label>
-          <input name="daily_rate" type="number" inputmode="numeric" placeholder="50000" required>
+          <input name="daily_rate" type="number" inputmode="numeric" placeholder="50000" required min="1">
         </div>
         <div class="field">
           <label>To'lov turi</label>
@@ -522,10 +708,12 @@
         <div class="field">
           <label>📹 Video ariza — Selfi (yuz + pasport)</label>
           <input name="video_selfie" type="file" accept="video/*" capture="user">
+          <div class="hint">Maks. 50MB · mp4, mov, webm</div>
         </div>
         <div class="field">
           <label>🛴 Video — Skuter holati</label>
           <input name="video_scooter" type="file" accept="video/*" capture="environment">
+          <div class="hint">Maks. 50MB · mp4, mov, webm</div>
         </div>
         <div class="field">
           <label>Qo'shimcha izoh</label>
@@ -554,7 +742,12 @@
           <div class="cap">Quyidagi havolani mijozga yuboring:</div>
         </div>
         <div class="link-box">${esc(rental.reg_link)}</div>
-        <button class="copy-btn" onclick="copyLink(event,'${esc(rental.reg_link)}')">📋 Havolani nusxalash</button>`;
+        <button class="copy-btn" id="copy-new-link">📋 Havolani nusxalash</button>`;
+      document.getElementById("copy-new-link").addEventListener("click", () => {
+        navigator.clipboard?.writeText(rental.reg_link);
+        haptic("success");
+        toast("Havola nusxalandi");
+      });
       ev.target.reset();
     } catch (e) {
       haptic("error");
@@ -572,9 +765,8 @@
     try {
       d = await api("/api/me?init_data=" + encodeURIComponent(initData));
     } catch (e) {
-      // Mijoz topilmadi — faqat xabar, admin kirish YO'Q
       app.innerHTML = `
-        <div class="top fade">
+        <div class="top fade" style="display:block">
           <span class="role-badge" style="background:var(--blue-soft);color:var(--blue)">👤 Foydalanuvchi</span>
           <div class="greet">${esc(fallbackName || "Salom")}</div>
           <div class="sub">Siz mijoz sifatida ro'yxatdan o'tmagansiz</div>
@@ -582,15 +774,12 @@
         <div class="hero fade">
           <div class="label">Ma'lumot yo'q</div>
           <div class="num blue" style="font-size:22px">Skuter olinmagan</div>
-          <div class="cap">
-            Skuter ijarasi uchun admin bilan bog'laning.
-          </div>
+          <div class="cap">Skuter ijarasi uchun admin bilan bog'laning.</div>
         </div>`;
       return;
     }
 
     const hasDebt = d.debt > 0;
-
     let heroLabel, heroNum, heroClass, heroCap;
     if (hasDebt) {
       heroLabel = "⚠️ To'lash kerak";
@@ -616,16 +805,14 @@
 
     const videoHtml = (d.has_selfie || d.has_scooter_video)
       ? `
-        <div class="section-title fade">
-          <span>Yuklangan videolar</span>
-        </div>
+        <div class="section-title fade"><span>Yuklangan videolar</span></div>
         ${videoBlock("Selfi ariza", "📹", d.video_selfie_url)}
         ${videoBlock("Skuter holati", "🛴", d.video_scooter_url)}
       `
       : "";
 
     app.innerHTML = `
-      <div class="top fade">
+      <div class="top fade" style="display:block">
         <span class="role-badge" style="background:var(--blue-soft);color:var(--blue)">👤 Mijoz</span>
         <div class="greet">${esc(d.full_name)}</div>
         <div class="sub">${esc(d.scooter_info)} · ${fmt(d.daily_rate)} so'm/kun</div>
@@ -637,9 +824,7 @@
         <div class="cap">${heroCap}</div>
       </div>
 
-      <div class="section-title fade">
-        <span>Skuter ma'lumotlari</span>
-      </div>
+      <div class="section-title fade"><span>Skuter ma'lumotlari</span></div>
       <div class="rrow fade" style="padding:16px 18px">
         <div class="kv"><span>🛴 Skuter</span><b>${esc(d.scooter_info)}</b></div>
         <div class="kv"><span>💰 Kunlik narx</span><b>${fmt(d.daily_rate)} so'm</b></div>

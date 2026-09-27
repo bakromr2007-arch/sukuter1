@@ -6,7 +6,6 @@ noto'g'ri sozlash ilova ishga tushmasdan oldin aniq xato bilan to'xtaydi.
 import logging
 import os
 import sys
-from typing import NoReturn  # ✅ qo'shildi
 
 from dotenv import load_dotenv
 
@@ -15,7 +14,7 @@ load_dotenv()
 log = logging.getLogger("config")
 
 
-def _fail(msg: str) -> NoReturn:
+def _fail(msg: str) -> "NoReturn":
     # Ilova buzilgan holatda jimgina ishga tushmasligi kerak — aniq xato bilan to'xtaydi.
     print(f"\n❌ KONFIGURATSIYA XATOSI: {msg}\n", file=sys.stderr)
     sys.exit(1)
@@ -42,6 +41,9 @@ BOT_TOKEN = _require("BOT_TOKEN")
 BOT_USERNAME = _require("BOT_USERNAME").lstrip("@")
 
 # ---------- Adminlar ----------
+# Ikkala format ham qo'llab-quvvatlanadi:
+#   ADMIN_ID=123456789                (bitta admin)
+#   ADMIN_IDS=123456789,987654321     (bir nechta admin, vergul bilan)
 _admin_raw = (os.getenv("ADMIN_IDS") or os.getenv("ADMIN_ID") or "").strip()
 if not _admin_raw:
     _fail(
@@ -99,6 +101,7 @@ LOGIN_MAX_ATTEMPTS = _optional_int("LOGIN_MAX_ATTEMPTS", 5)
 LOGIN_LOCKOUT_SECONDS = _optional_int("LOGIN_LOCKOUT_SECONDS", 300)
 
 # ---------- CORS ----------
+# Bo'sh bo'lsa — hamma joyga ruxsat (dev uchun qulay, prodda WEBAPP_URL bilan cheklash tavsiya etiladi)
 _cors_raw = os.getenv("CORS_ORIGINS", "").strip()
 CORS_ORIGINS = [o.strip() for o in _cors_raw.split(",") if o.strip()] or ["*"]
 

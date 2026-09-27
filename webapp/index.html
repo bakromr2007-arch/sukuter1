@@ -177,28 +177,6 @@
     text-transform:uppercase;letter-spacing:.1em;padding:4px 10px;border-radius:100px;
     background:var(--amber-soft);color:var(--amber);margin-bottom:8px}
 
-  /* Login ekrani */
-  .login-wrap{display:flex;flex-direction:column;align-items:center;
-    justify-content:center;min-height:70vh;text-align:center}
-  .login-icon{font-size:56px;margin-bottom:16px}
-  .login-title{font-size:24px;font-weight:800;margin-bottom:8px;letter-spacing:-.02em}
-  .login-sub{font-size:14px;color:var(--muted);margin-bottom:32px;line-height:1.5;max-width:280px}
-  .login-field{width:100%;max-width:320px;text-align:left;margin-bottom:14px}
-  .login-field label{display:block;font-size:12px;color:var(--muted-2);
-    margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
-  .login-field input{width:100%;background:var(--surface);border:1px solid var(--line-soft);
-    border-radius:var(--radius-md);color:var(--text);padding:16px;font-size:16px;
-    outline:none;transition:border-color .15s;text-align:center;letter-spacing:.3em;
-    font-weight:600}
-  .login-field input:focus{border-color:var(--amber)}
-  .login-btn{width:100%;max-width:320px;padding:16px;border-radius:var(--radius-md);
-    border:none;background:var(--amber);color:#1a1300;font-size:16px;font-weight:700;
-    margin-top:6px;transition:transform .1s,opacity .15s}
-  .login-btn:active{transform:scale(.98)}
-  .login-btn:disabled{opacity:.5}
-  .login-error{color:var(--debt);font-size:13px;margin-top:12px;min-height:18px}
-
-  /* Video player */
   .video-card{background:var(--surface);border:1px solid var(--line-soft);
     border-radius:var(--radius-md);overflow:hidden;margin-bottom:12px}
   .video-header{padding:12px 14px;background:var(--surface-2);
@@ -211,13 +189,11 @@
 </head>
 <body>
   <div id="app">
-    <div class="skel"></div>
-    <div class="skel"></div>
-    <div class="skel"></div>
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div>
   </div>
 
   <div id="tabbar" class="tabbar hidden">
-    <button id="tab-dash" class="active" onclick="showTab('dash')">📊 Nazorat</button>
+    <button id="tab-dash" class="active" onclick="showTab('dash')">📊 Mijozlar</button>
     <button id="tab-new" onclick="showTab('new')">➕ Yangi mijoz</button>
   </div>
 
@@ -234,15 +210,11 @@
   const tabbar = document.getElementById("tabbar");
   const ORIGIN = window.location.origin;
 
-  const TOKEN_KEY = "skuter_admin_token";
-  let adminToken = localStorage.getItem(TOKEN_KEY) || "";
-
   const fmt = n => Math.round(Number(n) || 0).toLocaleString("uz-UZ");
   const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
   const haptic = (t="success") => tg?.HapticFeedback?.notificationOccurred?.(t);
   const hapticTap = () => tg?.HapticFeedback?.impactOccurred?.("light");
 
-  // Video URL'ni to'liq qilish
   const videoUrl = (u) => {
     if (!u) return null;
     if (u.startsWith("http")) return u;
@@ -251,17 +223,7 @@
 
   // ================= API =================
   async function api(path, opts = {}) {
-    const headers = new Headers(opts.headers || {});
-    if (adminToken) headers.set("X-Admin-Token", adminToken);
-    opts.headers = headers;
-
     const res = await fetch(path, opts);
-
-    if ((res.status === 401 || res.status === 403) && adminToken) {
-      localStorage.removeItem(TOKEN_KEY);
-      adminToken = "";
-    }
-
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.detail || "Xatolik yuz berdi");
@@ -269,106 +231,36 @@
     return res.json();
   }
 
-  // ================= ADMIN LOGIN =================
-  function renderLogin() {
-    tabbar.classList.add("hidden");
-    app.innerHTML = `
-      <div class="login-wrap fade">
-        <div class="login-icon">🔐</div>
-        <div class="login-title">Admin kirish</div>
-        <div class="login-sub">Admin panelga kirish uchun parolni kiriting</div>
-        <form id="login-form" style="width:100%;display:flex;flex-direction:column;align-items:center">
-          <div class="login-field">
-            <label>Parol</label>
-            <input type="password" name="password" inputmode="text"
-                   autocomplete="current-password" required placeholder="••••••••">
-          </div>
-          <button type="submit" class="login-btn" id="login-btn">Kirish</button>
-          <div class="login-error" id="login-error"></div>
-        </form>
-      </div>
-    `;
-    document.getElementById("login-form").addEventListener("submit", handleLogin);
-  }
-
-  async function handleLogin(ev) {
-    ev.preventDefault();
-    const btn = document.getElementById("login-btn");
-    const errEl = document.getElementById("login-error");
-    btn.disabled = true;
-    btn.textContent = "Tekshirilmoqda...";
-    errEl.textContent = "";
-
-    const fd = new FormData(ev.target);
-    try {
-      const res = await api("/api/admin/login", { method: "POST", body: fd });
-      adminToken = res.token;
-      localStorage.setItem(TOKEN_KEY, adminToken);
-      haptic("success");
-      tabbar.classList.remove("hidden");
-      showTab("dash");
-    } catch (e) {
-      haptic("error");
-      errEl.textContent = e.message;
-      btn.disabled = false;
-      btn.textContent = "Kirish";
-    }
-  }
-
-  async function logout() {
-    if (!confirm("Admin panelidan chiqmoqchimisiz?")) return;
-    try { await api("/api/admin/logout", { method: "POST" }); } catch (e) {}
-    localStorage.removeItem(TOKEN_KEY);
-    adminToken = "";
-    haptic("success");
-    boot();
-  }
-
   // ================= BOOT =================
   async function boot() {
-    // 1) Admin token bo'lsa — admin panel
-    if (adminToken) {
-      try {
-        const who = await api("/api/whoami");
-        if (who.is_admin) {
-          tabbar.classList.remove("hidden");
-          showTab("dash");
-          return;
-        }
-      } catch (e) {
-        localStorage.removeItem(TOKEN_KEY);
-        adminToken = "";
-      }
+    // 1) Telegram yo'q
+    if (!initData) {
+      app.innerHTML = `
+        <div class="hero fade">
+          <div class="label">Diqqat</div>
+          <div class="num" style="font-size:22px">Telegram ichida oching</div>
+          <div class="cap">Bu sahifa faqat Telegram WebApp orqali ishlaydi.</div>
+        </div>`;
+      return;
     }
 
-    // 2) Telegram initData orqali
-    if (initData) {
-      try {
-        const who = await api("/api/whoami?init_data=" + encodeURIComponent(initData));
+    try {
+      // 2) Kim ekanini aniqlash
+      const who = await api("/api/whoami?init_data=" + encodeURIComponent(initData));
 
-        // 🛡 Admin (Telegram orqali)
-        if (who.is_admin) {
-          tabbar.classList.remove("hidden");
-          showTab("dash");
-          return;
-        }
-
-        // 👤 Mijoz
-        await renderRenter(who.name || "");
-        return;
-      } catch (e) {
-        app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+      // 🛡 ADMIN — to'g'ridan-to'g'ri admin panel
+      if (who.is_admin) {
+        tabbar.classList.remove("hidden");
+        showTab("dash");
         return;
       }
-    }
 
-    // 3) Hech narsa yo'q
-    app.innerHTML = `
-      <div class="hero fade">
-        <div class="label">Diqqat</div>
-        <div class="num" style="font-size:22px">Telegram ichida oching</div>
-        <div class="cap">Bu sahifa faqat Telegram WebApp orqali ishlaydi.</div>
-      </div>`;
+      // 👤 USER — shaxsiy kabinet
+      await renderRenter(who.name || "");
+
+    } catch (e) {
+      app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    }
   }
 
   // ================= ADMIN TABS =================
@@ -384,8 +276,7 @@
   async function renderDashboard() {
     app.innerHTML = `<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
     try {
-      const rentals = await api("/api/admin/rentals" +
-        (initData ? "?init_data=" + encodeURIComponent(initData) : ""));
+      const rentals = await api("/api/admin/rentals?init_data=" + encodeURIComponent(initData));
       const active = rentals.filter(r => r.status === "faol");
       const pending = rentals.filter(r => r.status === "kutilmoqda");
       const debtors = active.filter(r => r.debt > 0);
@@ -394,8 +285,8 @@
 
       app.innerHTML = `
         <div class="top fade">
-          <span class="role-badge">🛡 Admin</span>
-          <div class="greet">Nazorat paneli</div>
+          <span class="role-badge">🛡 Admin paneli</span>
+          <div class="greet">Nazorat</div>
           <div class="sub">${active.length} faol · ${pending.length} kutilmoqda · ${rentals.length} jami</div>
         </div>
 
@@ -427,8 +318,6 @@
             ? rentals.map(rentalRowHtml).join("")
             : `<p class="empty">Hali mijozlar yo'q.<br>"Yangi mijoz" bo'limidan qo'shing.</p>`}
         </div>
-
-        <button class="ghost-btn" style="margin-top:24px" onclick="logout()">🚪 Chiqish</button>
       `;
     } catch (e) {
       app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
@@ -569,7 +458,7 @@
     const btn = ev.currentTarget;
     btn.disabled = true;
     const fd = new FormData();
-    if (initData) fd.append("init_data", initData);
+    fd.append("init_data", initData);
     fd.append("rental_id", rentalId);
     fd.append("amount", amount);
     try {
@@ -585,7 +474,7 @@
     ev.stopPropagation();
     if (!confirm("Skuterni qaytarib olasizmi? Ijara tugatiladi.")) return;
     const fd = new FormData();
-    if (initData) fd.append("init_data", initData);
+    fd.append("init_data", initData);
     try {
       await api("/api/admin/rentals/" + rentalId + "/finish", { method: "POST", body: fd });
       haptic("success");
@@ -597,7 +486,7 @@
   function renderNewClientForm() {
     app.innerHTML = `
       <div class="top fade">
-        <span class="role-badge">🛡 Admin</span>
+        <span class="role-badge">🛡 Admin paneli</span>
         <div class="greet">Yangi mijoz</div>
         <div class="sub">Mijoz va skuter ma'lumotlarini kiriting</div>
       </div>
@@ -654,7 +543,7 @@
     const btn = document.getElementById("submit-btn");
     btn.disabled = true; btn.textContent = "Yuborilmoqda...";
     const fd = new FormData(ev.target);
-    if (initData) fd.append("init_data", initData);
+    fd.append("init_data", initData);
     try {
       const rental = await api("/api/admin/rentals", { method: "POST", body: fd });
       haptic("success");
@@ -675,7 +564,7 @@
     }
   }
 
-  // ================= USER: TO'LIQ KABINET =================
+  // ================= USER: KABINET =================
   async function renderRenter(fallbackName = "") {
     app.innerHTML = `<div class="skel"></div><div class="skel"></div>`;
 
@@ -683,7 +572,7 @@
     try {
       d = await api("/api/me?init_data=" + encodeURIComponent(initData));
     } catch (e) {
-      // Mijoz topilmadi
+      // Mijoz topilmadi — faqat xabar, admin kirish YO'Q
       app.innerHTML = `
         <div class="top fade">
           <span class="role-badge" style="background:var(--blue-soft);color:var(--blue)">👤 Foydalanuvchi</span>
@@ -695,7 +584,6 @@
           <div class="num blue" style="font-size:22px">Skuter olinmagan</div>
           <div class="cap">
             Skuter ijarasi uchun admin bilan bog'laning.
-            Ular sizga ro'yxatdan o'tish havolasini yuboradi.
           </div>
         </div>`;
       return;
@@ -703,7 +591,6 @@
 
     const hasDebt = d.debt > 0;
 
-    // Hero
     let heroLabel, heroNum, heroClass, heroCap;
     if (hasDebt) {
       heroLabel = "⚠️ To'lash kerak";
@@ -719,7 +606,6 @@
         : `To'lov ${d.paid_until} sanasigacha yopilgan`;
     }
 
-    // To'lovlar tarixi
     const paymentsHtml = d.payments.length
       ? d.payments.map(p => `
           <div class="payment-item fade">
@@ -728,7 +614,6 @@
           </div>`).join("")
       : `<p class="empty">Hali to'lov qilinmagan</p>`;
 
-    // Videolar
     const videoHtml = (d.has_selfie || d.has_scooter_video)
       ? `
         <div class="section-title fade">

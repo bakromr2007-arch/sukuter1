@@ -1,5 +1,5 @@
 import logging
-from datetime import date, timedelta
+from datetime import date
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.filters import CommandStart, Command, CommandObject
@@ -7,7 +7,7 @@ from aiogram.types import (
     Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 )
 
-from config import BOT_TOKEN, ADMIN_ID, WEBAPP_URL, BOT_USERNAME
+from config import BOT_TOKEN, ADMIN_IDS, WEBAPP_URL
 from database import SessionLocal
 from models import Rental
 
@@ -67,19 +67,35 @@ async def cmd_start(message: Message, command: CommandObject):
                 parse_mode="HTML",
             )
             log.info(f"✅ Yangi mijoz: {rental.full_name} (id={rental.id})")
+
+            # Adminlarga xabar
+            for admin_id in ADMIN_IDS:
+                try:
+                    await bot.send_message(
+                        admin_id,
+                        f"🆕 Yangi mijoz faollashdi\n\n"
+                        f"👤 {rental.full_name}\n"
+                        f"📞 {rental.phone or '—'}\n"
+                        f"🛴 {rental.scooter_info}",
+                    )
+                except Exception:
+                    pass
             return
 
         # Admin yoki oddiy foydalanuvchi
-        greeting = "Salom, Admin! 👋" if message.from_user.id == ADMIN_ID else "Salom! 👋"
+        is_admin = message.from_user.id in ADMIN_IDS
+        greeting = "Salom, Admin! 👋" if is_admin else "Salom! 👋"
         await message.answer(
-            f"{greeting}\n\nKabinetni ochish uchun pastdagi tugmani bosing.",
+            f"{greeting}\n\n"
+            f"{'Boshqaruv paneli' if is_admin else 'Kabinet'}"
+            f"ni ochish uchun pastdagi tugmani bosing.",
             reply_markup=webapp_kb,
         )
     finally:
         db.close()
 
 
-# ==================== /holat (mijoz uchun tez ma'lumot) ====================
+# ==================== /holat ====================
 @router.message(Command("holat"))
 async def cmd_holat(message: Message):
     db = SessionLocal()
@@ -128,19 +144,17 @@ async def cmd_help(message: Message):
 
 # ==================== Har kunlik eslatma ====================
 async def send_daily_reminders():
-    """Har kuni ertalab qarzdorlarga va to'lov yaqinlashgan mijozlarga eslatma."""
     db = SessionLocal()
     try:
         rentals = db.query(Rental).filter(Rental.status == "faol").all()
         admin_debtors = []
         admin_soon = []
-
         today = date.today()
 
         for r in rentals:
             debt = r.debt_amount()
 
-            # 1) Qarzdorlar — har kuni eslatma
+            # 1) Qarzdorlar
             if debt > 0 and r.telegram_id:
                 try:
                     await bot.send_message(
@@ -154,9 +168,11 @@ async def send_daily_reminders():
                     )
                 except Exception as e:
                     log.warning(f"Xabar yuborilmadi ({r.telegram_id}): {e}")
-                admin_debtors.append(f"• {r.full_name}: {debt:,.0f} so'm ({r.debt_days()} kun)")
+                admin_debtors.append(
+                    f"• {r.full_name}: {debt:,.0f} so'm ({r.debt_days()} kun)"
+                )
 
-            # 2) To'lov tugashiga 1-2 kun qolganlar
+            # 2) To'lov tugashiga 0-2 kun qolgan
             elif r.telegram_id and r.paid_until:
                 days_left = (r.paid_until - today).days
                 if days_left in (0, 1, 2):
@@ -165,7 +181,7 @@ async def send_daily_reminders():
                             r.telegram_id,
                             f"⏰ <b>To'lov yaqinlashdi</b>\n\n"
                             f"🛴 {r.scooter_info}\n"
-                            f"📅 To'lov {r.paid_until.strftime('%d.%m.%Y')} da tugaydi\n"
+                            f"📅 {r.paid_until.strftime('%d.%m.%Y')} da tugaydi\n"
                             f"⏳ {days_left} kun qoldi\n\n"
                             f"Kunlik: {r.daily_rate:,.0f} so'm",
                             parse_mode="HTML",
@@ -173,12 +189,11 @@ async def send_daily_reminders():
                     except Exception:
                         pass
                     admin_soon.append(
-                        f"• {r.full_name}: {days_left} kun qoldi "
-                        f"({r.paid_until.strftime('%d.%m.%Y')})"
+                        f"• {r.full_name}: {days_left} kun qoldi"
                     )
 
-        # Adminga umumiy hisobot
-        if ADMIN_ID and (admin_debtors or admin_soon):
+        # Adminlarga hisobot
+        if admin_debtors or admin_soon:
             report = "📋 <b>Bugungi hisobot</b>\n\n"
             if admin_debtors:
                 report += f"🔴 <b>Qarzdorlar ({len(admin_debtors)}):</b>\n"
@@ -187,10 +202,11 @@ async def send_daily_reminders():
                 report += f"🟡 <b>To'lov yaqinlashgan ({len(admin_soon)}):</b>\n"
                 report += "\n".join(admin_soon)
 
-            try:
-                await bot.send_message(ADMIN_ID, report, parse_mode="HTML")
-            except Exception as e:
-                log.warning(f"Admin hisoboti yuborilmadi: {e}")
+            for admin_id in ADMIN_IDS:
+                try:
+                    await bot.send_message(admin_id, report, parse_mode="HTML")
+                except Exception as e:
+                    log.warning(f"Admin {admin_id}ga yuborilmadi: {e}")
 
     except Exception as e:
         log.exception(f"Eslatma yuborishda xato: {e}")

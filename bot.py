@@ -18,7 +18,10 @@ dp = Dispatcher()
 router = Router()
 dp.include_router(router)
 
-webapp_kb = ReplyKeyboardMarkup(
+
+# ==================== KLAVIATURALAR ====================
+# User uchun
+user_kb = ReplyKeyboardMarkup(
     keyboard=[[
         KeyboardButton(
             text="📱 Kabinetni ochish",
@@ -28,6 +31,22 @@ webapp_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+# Admin uchun
+admin_kb = ReplyKeyboardMarkup(
+    keyboard=[[
+        KeyboardButton(
+            text="🛡 Admin paneli",
+            web_app=WebAppInfo(url=WEBAPP_URL),
+        )
+    ]],
+    resize_keyboard=True,
+)
+
+
+def get_kb(user_id: int):
+    """Foydalanuvchi admin bo'lsa — admin klaviaturasi, aks holda user klaviaturasi."""
+    return admin_kb if user_id in ADMIN_IDS else user_kb
+
 
 # ==================== /start ====================
 @router.message(CommandStart())
@@ -35,7 +54,7 @@ async def cmd_start(message: Message, command: CommandObject):
     args = command.args
     db = SessionLocal()
     try:
-        # Ro'yxatdan o'tish havolasi: /start reg_5
+        # ---------- Ro'yxatdan o'tish havolasi: /start reg_5 ----------
         if args and args.startswith("reg_"):
             raw = args.replace("reg_", "").strip()
             if not raw.isdigit():
@@ -57,13 +76,14 @@ async def cmd_start(message: Message, command: CommandObject):
             rental.paid_until = date.today()
             db.commit()
 
+            # Mijozga shaxsiy klaviatura
             await message.answer(
                 f"Assalomu alaykum, <b>{rental.full_name}</b>!\n\n"
                 f"🛴 Skuter: {rental.scooter_info}\n"
                 f"💰 Kunlik: {rental.daily_rate:,.0f} so'm\n"
                 f"📅 To'lov turi: {rental.payment_type}\n\n"
                 f"Kabinetni ochib, to'lovlaringizni kuzatib boring.",
-                reply_markup=webapp_kb,
+                reply_markup=user_kb,
                 parse_mode="HTML",
             )
             log.info(f"✅ Yangi mijoz: {rental.full_name} (id={rental.id})")
@@ -73,24 +93,33 @@ async def cmd_start(message: Message, command: CommandObject):
                 try:
                     await bot.send_message(
                         admin_id,
-                        f"🆕 Yangi mijoz faollashdi\n\n"
+                        f"🆕 <b>Yangi mijoz faollashdi</b>\n\n"
                         f"👤 {rental.full_name}\n"
                         f"📞 {rental.phone or '—'}\n"
                         f"🛴 {rental.scooter_info}",
+                        parse_mode="HTML",
                     )
                 except Exception:
                     pass
             return
 
-        # Admin yoki oddiy foydalanuvchi
+        # ---------- Admin yoki oddiy foydalanuvchi ----------
         is_admin = message.from_user.id in ADMIN_IDS
-        greeting = "Salom, Admin! 👋" if is_admin else "Salom! 👋"
-        await message.answer(
-            f"{greeting}\n\n"
-            f"{'Boshqaruv paneli' if is_admin else 'Kabinet'}"
-            f"ni ochish uchun pastdagi tugmani bosing.",
-            reply_markup=webapp_kb,
-        )
+
+        if is_admin:
+            await message.answer(
+                f"Salom, <b>Admin</b>! 🛡\n\n"
+                f"Boshqaruv panelini ochish uchun pastdagi tugmani bosing.\n\n"
+                f"👥 Faol adminlar: {len(ADMIN_IDS)} ta",
+                reply_markup=admin_kb,
+                parse_mode="HTML",
+            )
+        else:
+            await message.answer(
+                f"Salom! 👋\n\n"
+                f"Shaxsiy kabinetingizni ochish uchun pastdagi tugmani bosing.",
+                reply_markup=user_kb,
+            )
     finally:
         db.close()
 
@@ -132,14 +161,30 @@ async def cmd_holat(message: Message):
 # ==================== /yordam ====================
 @router.message(Command("yordam"))
 async def cmd_help(message: Message):
-    await message.answer(
-        "📖 <b>Buyruqlar</b>\n\n"
-        "/start — boshlash\n"
-        "/holat — qarz va to'lov holati\n"
-        "/yordam — bu xabar\n\n"
-        "To'liq ma'lumot uchun pastdagi <b>📱 Kabinetni ochish</b> tugmasini bosing.",
-        parse_mode="HTML",
-    )
+    is_admin = message.from_user.id in ADMIN_IDS
+
+    if is_admin:
+        text = (
+            "📖 <b>Admin buyruqlari</b>\n\n"
+            "/start — bosh menyu\n"
+            "/holat — o'z holati\n"
+            "/yordam — bu xabar\n\n"
+            "🛡 Admin panelda:\n"
+            "• Mijoz qo'shish\n"
+            "• To'lov qabul qilish\n"
+            "• Videolarni ko'rish\n"
+            "• Statistika"
+        )
+    else:
+        text = (
+            "📖 <b>Buyruqlar</b>\n\n"
+            "/start — bosh menyu\n"
+            "/holat — qarz va to'lov holati\n"
+            "/yordam — bu xabar\n\n"
+            "To'liq ma'lumot uchun <b>📱 Kabinetni ochish</b> tugmasini bosing."
+        )
+
+    await message.answer(text, parse_mode="HTML")
 
 
 # ==================== Har kunlik eslatma ====================
@@ -188,9 +233,7 @@ async def send_daily_reminders():
                         )
                     except Exception:
                         pass
-                    admin_soon.append(
-                        f"• {r.full_name}: {days_left} kun qoldi"
-                    )
+                    admin_soon.append(f"• {r.full_name}: {days_left} kun qoldi")
 
         # Adminlarga hisobot
         if admin_debtors or admin_soon:

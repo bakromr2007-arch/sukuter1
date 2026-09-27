@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+scooter.db
+uploads/
+.git/
+.gitignore

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Skuter kabinet</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #10131a;
+    --surface: #171c26;
+    --surface-2: #1e2531;
+    --line: #262e3c;
+    --text: #f2f4f7;
+    --muted: #7c8798;
+    --amber: #ffb020;
+    --amber-dim: #4a3a17;
+    --ok: #2bb673;
+    --ok-dim: #123626;
+    --debt: #ff5d5d;
+    --debt-dim: #3a1717;
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --font: -apple-system, "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+  }
+  body {
+    padding: 18px 16px calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+  h1, h2, h3, p { margin: 0; }
+  .top { margin-bottom: 20px; }
+  .top .greet { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .top .sub { font-size: 14px; color: var(--muted); margin-top: 3px; }
+
+  /* ---- Hero summary card ---- */
+  .hero {
+    background: linear-gradient(160deg, var(--surface-2), var(--surface) 65%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 22px 20px;
+    margin-bottom: 18px;
+  }
+  .hero .num {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.05;
+  }
+  .hero .num.debt { color: var(--debt); }
+  .hero .num.ok { color: var(--ok); }
+  .hero .cap { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  /* ---- Section ---- */
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 22px 0 10px;
+  }
+
+  /* ---- Rental row ---- */
+  .rlist { display: flex; flex-direction: column; gap: 10px; }
+  .rrow {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+  .rrow-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .rrow-name { font-weight: 600; font-size: 15px; }
+  .rrow-scooter { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .rrow-status { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rrow-status.ok { color: var(--ok); }
+  .rrow-status.debt { color: var(--debt); }
+  .rrow-status.pending { color: var(--amber); }
+  .rrow-detail {
+    display: none;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .rrow.open .rrow-detail { display: block; }
+  .kv { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: var(--muted); }
+  .kv b { color: var(--text); font-weight: 500; }
+
+  .link-box {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    word-break: break-all;
+    margin-top: 10px;
+  }
+  .copy-btn {
+    margin-top: 8px;
+    width: 100%;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .pay-row { display: flex; gap: 8px; margin-top: 12px; }
+  .pay-row input {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 11px 12px;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pay-row button {
+    background: var(--amber);
+    color: #1a1300;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0 18px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ---- Form ---- */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .field input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 13px 14px;
+    font-size: 15px;
+  }
+  .field input[type="file"] { padding: 10px; font-size: 13px; color: var(--muted); }
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--amber);
+    color: #1a1300;
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 6px;
+  }
+  .submit-btn:disabled { opacity: 0.5; }
+
+  .payment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .payment-item:last-child { border-bottom: none; }
+  .payment-amount { font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .payment-meta { font-size: 12px; color: var(--muted); text-align: right; }
+
+  .empty, .loading, .error, .notice {
+    color: var(--muted);
+    font-size: 14px;
+    padding: 28px 0;
+    text-align: center;
+  }
+  .error { color: var(--debt); }
+  .notice { color: var(--ok); padding: 10px 0; text-align: left; }
+
+  /* ---- Bottom tab bar (admin only) ---- */
+  .tabbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    gap: 8px;
+  }
+  .tabbar button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 0;
+    border-radius: var(--radius-sm);
+  }
+  .tabbar button.active { color: var(--amber); background: var(--amber-dim); }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <div id="app"><p class="loading">Yuklanmoqda...</p></div>
+  <div id="tabbar" class="tabbar hidden">
+    <button id="tab-dash" class="active" onclick="showTab('dash')">Nazorat</button>
+    <button id="tab-new" onclick="showTab('new')">Yangi mijoz</button>
+  </div>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  tg?.ready();
+  tg?.expand();
+
+  const initData = tg?.initData || "";
+  const app = document.getElementById("app");
+  const tabbar = document.getElementById("tabbar");
+
+  let currentTab = "dash";
+  let rentalsCache = [];
+
+  function fmt(n) { return Math.round(n).toLocaleString("uz-UZ"); }
+  function esc(s) {
+    const d = document.createElement("div");
+    d.textContent = s ?? "";
+    return d.innerHTML;
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, opts);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || "Xatolik");
+    }
+    return res.json();
+  }
+
+  async function boot() {
+    if (!initData) {
+      app.innerHTML = '<p class="error">Bu sahifa faqat Telegram ilovasi ichida ishlaydi.</p>';
+      return;
+    }
+    try {
+      const who = await api("/api/whoami?init_data=" + encodeURIComponent(initData));
+      if (who.is_admin) {
+        tabbar.classList.remove("hidden");
+        showTab("dash");
+      } else {
+        renderRenter();
+      }
+    } catch (e) {
+      app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    }
+  }
+
+  // ---------------- ADMIN: Nazorat (dashboard) ----------------
+  function showTab(tab) {
+    currentTab = tab;
+    document.getElementById("tab-dash").classList.toggle("active", tab === "dash");
+    document.getElementById("tab-new").classList.toggle("active", tab === "new");
+    if (tab === "dash") renderDashboard();
+    else renderNewClientForm();
+  }
+
+  async function renderDashboard() {
+    app.innerHTML = '<p class="loading">Yuklanmoqda...</p>';
+    try {
+      const rentals = await api("/api/admin/rentals?init_data=" + encodeURIComponent(initData));
+      rentalsCache = rentals;
+      const active = rentals.filter(r => r.status === "faol");
+      const debtors = active.filter(r => r.debt > 0);
+      const totalDebt = debtors.reduce((s, r) => s + r.debt, 0);
+
+      const heroHtml = debtors.length
+        ? `<div class="num debt">${fmt(totalDebt)} so'm</div>
+           <div class="cap">${debtors.length} ta mijozda qarz bor</div>`
+        : `<div class="num ok">Qarzdorlar yo'q</div>
+           <div class="cap">Barcha mijozlar to'lovlarini yopgan</div>`;
+
+      const rowsHtml = rentals.length
+        ? rentals.map(rentalRowHtml).join("")
+        : '<p class="empty">Hali mijozlar yo\'q. "Yangi mijoz" bo\'limidan qo\'shing.</p>';
+
+      app.innerHTML = `
+        <div class="top">
+          <div class="greet">Nazorat paneli</div>
+          <div class="sub">${active.length} ta faol ijara</div>
+        </div>
+        <div class="hero">${heroHtml}</div>
+        <div class="section-title">Mijozlar</div>
+        <div class="rlist">${rowsHtml}</div>
+      `;
+    } catch (e) {
+      app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    }
+  }
+
+  function rentalRowHtml(r) {
+    let statusHtml, statusClass;
+    if (r.status === "kutilmoqda") {
+      statusHtml = "Kutilmoqda";
+      statusClass = "pending";
+    } else if (r.debt > 0) {
+      statusHtml = fmt(r.debt) + " so'm";
+      statusClass = "debt";
+    } else {
+      statusHtml = "Qarzi yo'q";
+      statusClass = "ok";
+    }
+
+    const detail = r.status === "kutilmoqda"
+      ? `<div class="rrow-detail">
+           <p style="font-size:13px;color:var(--muted);">Mijoz hali botni ishga tushirmagan. Ro'yxatdan o'tish havolasini yuboring:</p>
+           <div class="link-box">${esc(r.reg_link)}</div>
+           <button class="copy-btn" onclick="copyLink(event, '${r.reg_link}')">Havolani nusxalash</button>
+         </div>`
+      : `<div class="rrow-detail">
+           <div class="kv"><span>Kunlik narx</span><b>${fmt(r.daily_rate)} so'm</b></div>
+           <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)}</b></div>
+           <div class="kv"><span>Telefon</span><b>${esc(r.phone || "—")}</b></div>
+           <div class="kv"><span>To'lov ${r.debt > 0 ? "muddati o'tgan" : "yopilgan sana"}</span><b>${r.paid_until}</b></div>
+           <div class="pay-row">
+             <input type="number" inputmode="numeric" placeholder="Summa (so'm)" id="pay-${r.id}">
+             <button onclick="submitPayment(event, ${r.id})">Qabul qilish</button>
+           </div>
+         </div>`;
+
+    return `
+      <div class="rrow" id="row-${r.id}" onclick="toggleRow(${r.id})">
+        <div class="rrow-top">
+          <div>
+            <div class="rrow-name">${esc(r.full_name)}</div>
+            <div class="rrow-scooter">${esc(r.scooter_info)}</div>
+          </div>
+          <div class="rrow-status ${statusClass}">${statusHtml}</div>
+        </div>
+        ${detail}
+      </div>
+    `;
+  }
+
+  function toggleRow(id) {
+    document.getElementById("row-" + id).classList.toggle("open");
+  }
+
+  function copyLink(ev, link) {
+    ev.stopPropagation();
+    navigator.clipboard?.writeText(link);
+    tg?.HapticFeedback?.notificationOccurred("success");
+  }
+
+  async function submitPayment(ev, rentalId) {
+    ev.stopPropagation();
+    const input = document.getElementById("pay-" + rentalId);
+    const amount = parseFloat(input.value);
+    if (!amount || amount <= 0) return;
+    const fd = new FormData();
+    fd.append("init_data", initData);
+    fd.append("rental_id", rentalId);
+    fd.append("amount", amount);
+    try {
+      await api("/api/admin/payments", { method: "POST", body: fd });
+      tg?.HapticFeedback?.notificationOccurred("success");
+      renderDashboard();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  // ---------------- ADMIN: Yangi mijoz ----------------
+  function renderNewClientForm() {
+    app.innerHTML = `
+      <div class="top">
+        <div class="greet">Yangi mijoz</div>
+        <div class="sub">Skuter va mijoz ma'lumotlarini kiriting</div>
+      </div>
+      <form id="new-form">
+        <div class="field">
+          <label>Ism familya</label>
+          <input name="full_name" required>
+        </div>
+        <div class="field">
+          <label>Telefon raqami</label>
+          <input name="phone" placeholder="+998 90 123 45 67" required>
+        </div>
+        <div class="field">
+          <label>Skuter modeli / raqami</label>
+          <input name="scooter_info" required>
+        </div>
+        <div class="field">
+          <label>Kunlik narx (so'm)</label>
+          <input name="daily_rate" type="number" inputmode="numeric" required>
+        </div>
+        <div class="field">
+          <label>Video ariza</label>
+          <input name="video" type="file" accept="video/*" capture="environment">
+        </div>
+        <button type="submit" class="submit-btn" id="submit-btn">Qo'shish</button>
+      </form>
+      <div id="result"></div>
+    `;
+    document.getElementById("new-form").addEventListener("submit", handleNewClient);
+  }
+
+  async function handleNewClient(ev) {
+    ev.preventDefault();
+    const btn = document.getElementById("submit-btn");
+    btn.disabled = true;
+    btn.textContent = "Yuborilmoqda...";
+    const fd = new FormData(ev.target);
+    fd.append("init_data", initData);
+    try {
+      const rental = await api("/api/admin/rentals", { method: "POST", body: fd });
+      tg?.HapticFeedback?.notificationOccurred("success");
+      document.getElementById("result").innerHTML = `
+        <p class="notice">✅ ${esc(rental.full_name)} qo'shildi. Havolani yuboring:</p>
+        <div class="link-box">${esc(rental.reg_link)}</div>
+        <button class="copy-btn" onclick="copyLink(event, '${rental.reg_link}')">Havolani nusxalash</button>
+      `;
+      ev.target.reset();
+    } catch (e) {
+      document.getElementById("result").innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Qo'shish";
+    }
+  }
+
+  // ---------------- RENTER: o'z kabineti ----------------
+  async function renderRenter() {
+    try {
+      const d = await api("/api/me?init_data=" + encodeURIComponent(initData));
+      const hasDebt = d.debt > 0;
+      const paymentsHtml = d.payments.length
+        ? d.payments.map(p => `
+            <div class="payment-item">
+              <div class="payment-amount">${fmt(p.amount)} so'm</div>
+              <div class="payment-meta">${p.date}<br>${p.days_covered} kunga</div>
+            </div>`).join("")
+        : '<p class="empty">Hali to\'lov qilinmagan</p>';
+
+      app.innerHTML = `
+        <div class="top">
+          <div class="greet">${esc(d.full_name)}</div>
+          <div class="sub">${esc(d.scooter_info)} · ${fmt(d.daily_rate)} so'm/kun</div>
+        </div>
+        <div class="hero">
+          <div class="num ${hasDebt ? "debt" : "ok"}">${hasDebt ? fmt(d.debt) + " so'm" : "Qarzingiz yo'q"}</div>
+          <div class="cap">${hasDebt ? d.debt_days + " kundan beri to'lov qilinmagan" : "To'lov " + d.paid_until + " gacha yopilgan"}</div>
+        </div>
+        <div class="section-title">Jami to'langan: ${fmt(d.total_paid)} so'm</div>
+        <div class="rlist">${paymentsHtml}</div>
+      `;
+    } catch (e) {
+      app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    }
+  }
+
+  boot();
+</script>
+</body>
+</html>

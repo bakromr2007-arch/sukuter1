@@ -243,7 +243,18 @@
 
   async function boot() {
     if (!initData) {
-      app.innerHTML = '<p class="error">Bu sahifa faqat Telegram ilovasi ichida ishlaydi.</p>';
+      const debug = {
+        telegram_object_bor: !!window.Telegram,
+        webapp_object_bor: !!tg,
+        platform: tg?.platform || null,
+        version: tg?.version || null,
+        initDataUnsafe_bosh_emasmi: tg && tg.initDataUnsafe ? Object.keys(tg.initDataUnsafe).length > 0 : false,
+        url: window.location.href,
+      };
+      app.innerHTML = `
+        <p class="error">Bu sahifa faqat Telegram ilovasi ichida ishlaydi.</p>
+        <pre style="font-size:11px;color:var(--muted);white-space:pre-wrap;background:var(--surface);padding:12px;border-radius:12px;margin-top:14px;">${JSON.stringify(debug, null, 2)}</pre>
+      `;
       return;
     }
     try {

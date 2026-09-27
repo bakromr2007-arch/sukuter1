@@ -206,9 +206,7 @@ async def save_video(v: UploadFile | None, prefix: str) -> str | None:
 
     ext = os.path.splitext(v.filename)[1].lower()
     if ext not in ALLOWED_VIDEO_EXTENSIONS:
-        # ✅ Python 3.11 uchun mos: backslashsiz
-        ext_display = ext or "noma'lum"
-        raise HTTPException(400, f"Video formati qo'llab-quvvatlanmaydi: {ext_display}")
+        raise HTTPException(400, f"Video formati qo'llab-quvvatlanmaydi: {ext or 'noma\u2019lum'}")
 
     if v.content_type and v.content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
         raise HTTPException(400, f"Video turi qo'llab-quvvatlanmaydi: {v.content_type}")
@@ -228,10 +226,7 @@ async def save_video(v: UploadFile | None, prefix: str) -> str | None:
                 if size > MAX_UPLOAD_BYTES:
                     f.close()
                     os.remove(full_path)
-                    raise HTTPException(
-                        400,
-                        f"Video hajmi {MAX_UPLOAD_MB}MB dan katta bo'lmasligi kerak",
-                    )
+                    raise HTTPException(400, f"Video hajmi {MAX_UPLOAD_MB}MB dan katta bo'lmasligi kerak")
                 f.write(chunk)
     except HTTPException:
         raise
@@ -540,12 +535,7 @@ def delete_rental(
 def mount_static():
     init_db()
     app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
-
-    # ✅ webapp papkasi mavjudligini tekshirish
-    if os.path.isdir("webapp"):
-        app.mount("/", StaticFiles(directory="webapp", html=True), name="webapp")
-    else:
-        log.warning("⚠️ 'webapp' papkasi topilmadi — statik fayllar xizmat qilmaydi")
+    app.mount("/", StaticFiles(directory="webapp", html=True), name="webapp")
 
 
 mount_static()

@@ -8,6 +8,7 @@ import secrets
 import shutil
 import time
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from urllib.parse import parse_qsl
 
 import httpx
@@ -21,7 +22,7 @@ from config import (
     MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, ALLOWED_VIDEO_EXTENSIONS,
     ALLOWED_VIDEO_CONTENT_TYPES, INIT_DATA_MAX_AGE_SECONDS,
     ADMIN_SESSION_TTL_SECONDS, LOGIN_MAX_ATTEMPTS, LOGIN_LOCKOUT_SECONDS,
-    CORS_ORIGINS,
+    CORS_ORIGINS, BASE_DIR,
 )
 from database import SessionLocal, init_db
 from models import Rental, Payment, RentalStatus, AdminSession
@@ -41,7 +42,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    # Kutilmagan xatoni loglaymiz, lekin foydalanuvchiga stack trace ko'rsatmaymiz
     log.exception(f"Kutilmagan xato: {request.method} {request.url.path}")
     return JSONResponse(status_code=500, content={"detail": "Server xatosi. Birozdan so'ng urinib ko'ring."})
 
@@ -66,7 +66,7 @@ def _register_failed_attempt(key: str):
     _login_attempts.setdefault(key, []).append(time.time())
 
 
-# ==================== ADMIN SESSIYALARI (bazada, restart-bardosh) ====================
+# ==================== ADMIN SESSIYALARI ====================
 def create_admin_session(db) -> str:
     token = secrets.token_urlsafe(32)
     db.add(AdminSession(token=token))
@@ -126,11 +126,6 @@ def is_admin_by_telegram(init_data: str) -> bool:
 
 
 def require_admin_api(db, init_data: str = "", x_admin_token: str = "") -> str:
-    """
-    Ikkita usuldan birini qabul qiladi:
-    1. X-Admin-Token sarlavhasi (parol orqali kirgan bo'lsa)
-    2. Telegram initData (agar foydalanuvchi ADMIN_IDS da bo'lsa)
-    """
     if x_admin_token and check_admin_session(db, x_admin_token):
         return "session"
 
@@ -326,13 +321,13 @@ def get_me(init_data: str):
         db.close()
 
 
-# ==================== ADMIN: RO'YXAT (qidiruv + filtr) ====================
+# ==================== ADMIN: RO'YXAT ====================
 @app.get("/api/admin/rentals")
 def admin_rentals(
     init_data: str = "",
     x_admin_token: str = Header("", alias="X-Admin-Token"),
-    status: str = Query("", description="faol / kutilmoqda / tugagan / bo'sh=hammasi (tugagandan tashqari)"),
-    search: str = Query("", description="Ism, telefon yoki skuter bo'yicha qidiruv"),
+    status: str = Query(""),
+    search: str = Query(""),
 ):
     db = SessionLocal()
     try:
@@ -515,7 +510,6 @@ def delete_rental(
     init_data: str = "",
     x_admin_token: str = Header("", alias="X-Admin-Token"),
 ):
-    """Xato kiritilgan (masalan hali faollashmagan) yozuvni butunlay o'chirish."""
     db = SessionLocal()
     try:
         require_admin_api(db, init_data, x_admin_token)
@@ -535,8 +529,20 @@ def delete_rental(
 # ==================== STATIC ====================
 def mount_static():
     init_db()
+
+    webapp_dir = BASE_DIR / "webapp"
+    if not webapp_dir.is_dir():
+        raise RuntimeError(
+            f"❌ 'webapp' papkasi topilmadi: {webapp_dir}\n"
+            f"   index.html shu papkada bo'lishi shart."
+        )
+    index_file = webapp_dir / "index.html"
+    if not index_file.is_file():
+        raise RuntimeError(f"❌ 'index.html' topilmadi: {index_file}")
+
+    # MUHIM: /uploads va / static mount'lari absolyut yo'l bilan — CWD'ga bog'liq emas
     app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
-    app.mount("/", StaticFiles(directory="webapp", html=True), name="webapp")
+    app.mount("/", StaticFiles(directory=str(webapp_dir), html=True), name="webapp")
 
 
 mount_static()

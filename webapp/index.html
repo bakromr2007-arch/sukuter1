@@ -2,212 +2,363 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0e1118" />
 <title>Skuter kabinet</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root {
-    --bg: #10131a;
-    --surface: #171c26;
-    --surface-2: #1e2531;
-    --line: #262e3c;
-    --text: #f2f4f7;
-    --muted: #7c8798;
+    --bg: #0e1118;
+    --bg-2: #131822;
+    --surface: #181e29;
+    --surface-2: #1f2735;
+    --line: #2a3342;
+    --line-soft: #222a37;
+    --text: #eef1f6;
+    --muted: #7e8a9c;
+    --muted-2: #5a6577;
     --amber: #ffb020;
-    --amber-dim: #4a3a17;
-    --ok: #2bb673;
-    --ok-dim: #123626;
-    --debt: #ff5d5d;
-    --debt-dim: #3a1717;
-    --radius-lg: 22px;
-    --radius-md: 16px;
-    --radius-sm: 12px;
-    --font: -apple-system, "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif;
+    --amber-soft: #2a2210;
+    --ok: #34d399;
+    --ok-soft: #0f2a20;
+    --debt: #ff6b6b;
+    --debt-soft: #2a1414;
+    --radius-xl: 26px;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    height: 100%;
     margin: 0;
     background: var(--bg);
     color: var(--text);
     font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
   }
   body {
-    padding: 18px 16px calc(90px + env(safe-area-inset-bottom, 0px));
+    padding: 20px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 600px at 50% -20%, rgba(255,176,32,0.06), transparent 60%),
+      var(--bg);
   }
   h1, h2, h3, p { margin: 0; }
-  .top { margin-bottom: 20px; }
-  .top .greet { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-  .top .sub { font-size: 14px; color: var(--muted); margin-top: 3px; }
+  button { font-family: inherit; cursor: pointer; }
+  input { font-family: inherit; }
 
-  /* ---- Hero summary card ---- */
-  .hero {
-    background: linear-gradient(160deg, var(--surface-2), var(--surface) 65%);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 22px 20px;
-    margin-bottom: 18px;
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
-  .hero .num {
-    font-size: 40px;
+  .fade { animation: fadeUp .35s cubic-bezier(.2,.7,.3,1) both; }
+
+  .top { margin-bottom: 22px; }
+  .top .greet {
+    font-size: 24px;
     font-weight: 700;
     letter-spacing: -0.02em;
+  }
+  .top .sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+  .hero {
+    position: relative;
+    background: linear-gradient(155deg, var(--surface-2), var(--surface) 70%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    padding: 26px 22px;
+    margin-bottom: 22px;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(400px 200px at 100% 0%, rgba(255,176,32,0.10), transparent 60%);
+    pointer-events: none;
+  }
+  .hero .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted-2);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .hero .num {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
     line-height: 1.05;
   }
   .hero .num.debt { color: var(--debt); }
-  .hero .num.ok { color: var(--ok); }
-  .hero .cap { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  .hero .num.ok   { color: var(--ok); }
+  .hero .cap { font-size: 14px; color: var(--muted); margin-top: 8px; }
 
-  /* ---- Section ---- */
   .section-title {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted-2);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 26px 4px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title .count {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    padding: 3px 10px;
+    font-size: 11px;
     color: var(--muted);
-    margin: 22px 0 10px;
   }
 
-  /* ---- Rental row ---- */
   .rlist { display: flex; flex-direction: column; gap: 10px; }
   .rrow {
     background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
-    padding: 14px 16px;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    transition: border-color .2s, background .2s;
+  }
+  .rrow:active { background: var(--surface-2); }
+  .rrow.open { border-color: var(--line); background: var(--surface-2); }
+  .rrow-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
     cursor: pointer;
   }
-  .rrow-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-  .rrow-name { font-weight: 600; font-size: 15px; }
-  .rrow-scooter { font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .rrow-status { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .rrow-status.ok { color: var(--ok); }
-  .rrow-status.debt { color: var(--debt); }
-  .rrow-status.pending { color: var(--amber); }
+  .rrow-name { font-weight: 600; font-size: 15.5px; letter-spacing: -0.01em; }
+  .rrow-scooter { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .rrow-status {
+    font-weight: 700;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    padding: 5px 12px;
+    border-radius: 100px;
+  }
+  .rrow-status.ok      { color: var(--ok);    background: var(--ok-soft); }
+  .rrow-status.debt    { color: var(--debt);  background: var(--debt-soft); }
+  .rrow-status.pending { color: var(--amber); background: var(--amber-soft); }
+
   .rrow-detail {
     display: none;
-    margin-top: 14px;
-    padding-top: 14px;
+    margin-top: 16px;
+    padding-top: 16px;
     border-top: 1px solid var(--line);
   }
-  .rrow.open .rrow-detail { display: block; }
-  .kv { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: var(--muted); }
-  .kv b { color: var(--text); font-weight: 500; }
+  .rrow.open .rrow-detail { display: block; animation: fadeUp .25s both; }
+
+  .kv {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13.5px;
+    padding: 6px 0;
+    color: var(--muted);
+  }
+  .kv b { color: var(--text); font-weight: 600; }
 
   .link-box {
-    background: var(--surface-2);
+    background: var(--bg-2);
+    border: 1px solid var(--line-soft);
     border-radius: var(--radius-sm);
-    padding: 10px 12px;
+    padding: 11px 13px;
     font-size: 12px;
     color: var(--muted);
     word-break: break-all;
-    margin-top: 10px;
+    margin-top: 12px;
+    font-family: ui-monospace, monospace;
   }
   .copy-btn {
     margin-top: 8px;
     width: 100%;
-    padding: 10px;
+    padding: 11px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--line);
     background: var(--surface-2);
     color: var(--text);
     font-size: 14px;
     font-weight: 600;
+    transition: background .15s;
   }
+  .copy-btn:active { background: var(--line); }
 
-  .pay-row { display: flex; gap: 8px; margin-top: 12px; }
+  .pay-row { display: flex; gap: 8px; margin-top: 14px; }
   .pay-row input {
     flex: 1;
-    background: var(--surface-2);
+    min-width: 0;
+    background: var(--bg-2);
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     color: var(--text);
-    padding: 11px 12px;
+    padding: 12px 14px;
     font-size: 15px;
     font-variant-numeric: tabular-nums;
+    outline: none;
   }
+  .pay-row input:focus { border-color: var(--amber); }
   .pay-row button {
     background: var(--amber);
     color: #1a1300;
     border: none;
     border-radius: var(--radius-sm);
-    padding: 0 18px;
+    padding: 0 20px;
     font-weight: 700;
     font-size: 14px;
+    transition: transform .1s, opacity .15s;
   }
+  .pay-row button:active { transform: scale(.97); }
+  .pay-row button:disabled { opacity: .5; }
 
-  /* ---- Form ---- */
   .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted-2);
+    margin-bottom: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
   .field input {
     width: 100%;
     background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
     color: var(--text);
-    padding: 13px 14px;
+    padding: 14px 16px;
     font-size: 15px;
+    outline: none;
+    transition: border-color .15s;
   }
-  .field input[type="file"] { padding: 10px; font-size: 13px; color: var(--muted); }
+  .field input:focus { border-color: var(--amber); }
+  .field input[type="file"] {
+    padding: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
   .submit-btn {
     width: 100%;
-    padding: 15px;
+    padding: 16px;
     border-radius: var(--radius-md);
     border: none;
     background: var(--amber);
     color: #1a1300;
     font-size: 16px;
     font-weight: 700;
-    margin-top: 6px;
+    margin-top: 8px;
+    transition: transform .1s, opacity .15s;
   }
-  .submit-btn:disabled { opacity: 0.5; }
+  .submit-btn:active { transform: scale(.98); }
+  .submit-btn:disabled { opacity: .5; }
 
   .payment-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 13px 0;
-    border-bottom: 1px solid var(--line);
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
   }
-  .payment-item:last-child { border-bottom: none; }
-  .payment-amount { font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
-  .payment-meta { font-size: 12px; color: var(--muted); text-align: right; }
+  .payment-amount {
+    font-weight: 700;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .payment-meta {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.5;
+  }
 
   .empty, .loading, .error, .notice {
     color: var(--muted);
     font-size: 14px;
-    padding: 28px 0;
+    padding: 32px 20px;
     text-align: center;
   }
+  .loading::after {
+    content: "";
+    display: inline-block;
+    width: 6px; height: 6px;
+    margin-left: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    animation: pulse 1s infinite;
+    vertical-align: middle;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: .3; transform: scale(.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
   .error { color: var(--debt); }
-  .notice { color: var(--ok); padding: 10px 0; text-align: left; }
+  .notice { color: var(--ok); padding: 12px 0; text-align: left; }
 
-  /* ---- Bottom tab bar (admin only) ---- */
   .tabbar {
     position: fixed;
-    left: 0; right: 0; bottom: 0;
+    left: 12px; right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     display: flex;
-    background: var(--surface);
-    border-top: 1px solid var(--line);
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
-    gap: 8px;
+    background: rgba(24, 30, 41, 0.92);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 6px;
+    gap: 6px;
+    z-index: 100;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
   }
   .tabbar button {
     flex: 1;
     background: transparent;
     border: none;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 600;
-    padding: 10px 0;
-    border-radius: var(--radius-sm);
+    padding: 12px 0;
+    border-radius: 14px;
+    transition: all .2s;
   }
-  .tabbar button.active { color: var(--amber); background: var(--amber-dim); }
+  .tabbar button.active {
+    color: #1a1300;
+    background: var(--amber);
+  }
 
-  .hidden { display: none; }
+  .hidden { display: none !important; }
+
+  .skel {
+    background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: var(--radius-lg);
+    height: 76px;
+    margin-bottom: 10px;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
 </style>
 </head>
 <body>
-  <div id="app"><p class="loading">Yuklanmoqda...</p></div>
+  <div id="app">
+    <div class="skel"></div>
+    <div class="skel"></div>
+    <div class="skel"></div>
+  </div>
+
   <div id="tabbar" class="tabbar hidden">
     <button id="tab-dash" class="active" onclick="showTab('dash')">Nazorat</button>
     <button id="tab-new" onclick="showTab('new')">Yangi mijoz</button>
@@ -217,30 +368,39 @@
   const tg = window.Telegram?.WebApp;
   tg?.ready();
   tg?.expand();
+  tg?.setHeaderColor?.("#0e1118");
+  tg?.setBackgroundColor?.("#0e1118");
 
   const initData = tg?.initData || "";
   const app = document.getElementById("app");
   const tabbar = document.getElementById("tabbar");
 
   let currentTab = "dash";
-  let rentalsCache = [];
 
-  function fmt(n) { return Math.round(n).toLocaleString("uz-UZ"); }
-  function esc(s) {
+  const fmt = n => Math.round(Number(n) || 0).toLocaleString("uz-UZ");
+  const esc = s => {
     const d = document.createElement("div");
     d.textContent = s ?? "";
     return d.innerHTML;
+  };
+
+  function haptic(type = "success") {
+    tg?.HapticFeedback?.notificationOccurred?.(type);
+  }
+  function hapticTap() {
+    tg?.HapticFeedback?.impactOccurred?.("light");
   }
 
   async function api(path, opts = {}) {
     const res = await fetch(path, opts);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || "Xatolik");
+      throw new Error(body.detail || "Xatolik yuz berdi");
     }
     return res.json();
   }
 
+  // ---------- Boot ----------
   async function boot() {
     if (!initData) {
       const debug = {
@@ -248,12 +408,15 @@
         webapp_object_bor: !!tg,
         platform: tg?.platform || null,
         version: tg?.version || null,
-        initDataUnsafe_bosh_emasmi: tg && tg.initDataUnsafe ? Object.keys(tg.initDataUnsafe).length > 0 : false,
         url: window.location.href,
       };
       app.innerHTML = `
-        <p class="error">Bu sahifa faqat Telegram ilovasi ichida ishlaydi.</p>
-        <pre style="font-size:11px;color:var(--muted);white-space:pre-wrap;background:var(--surface);padding:12px;border-radius:12px;margin-top:14px;">${JSON.stringify(debug, null, 2)}</pre>
+        <div class="hero fade">
+          <div class="label">Diqqat</div>
+          <div class="num" style="font-size:22px;">Telegram ichida oching</div>
+          <div class="cap">Bu sahifa faqat Telegram WebApp orqali ishlaydi.</div>
+        </div>
+        <pre style="font-size:11px;color:var(--muted);white-space:pre-wrap;background:var(--surface);padding:12px;border-radius:12px;margin-top:14px;">${esc(JSON.stringify(debug, null, 2))}</pre>
       `;
       return;
     }
@@ -270,8 +433,9 @@
     }
   }
 
-  // ---------------- ADMIN: Nazorat (dashboard) ----------------
+  // ---------- Tabs ----------
   function showTab(tab) {
+    hapticTap();
     currentTab = tab;
     document.getElementById("tab-dash").classList.toggle("active", tab === "dash");
     document.getElementById("tab-new").classList.toggle("active", tab === "new");
@@ -279,11 +443,11 @@
     else renderNewClientForm();
   }
 
+  // ---------- Admin: dashboard ----------
   async function renderDashboard() {
-    app.innerHTML = '<p class="loading">Yuklanmoqda...</p>';
+    app.innerHTML = `<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
     try {
       const rentals = await api("/api/admin/rentals?init_data=" + encodeURIComponent(initData));
-      rentalsCache = rentals;
       const active = rentals.filter(r => r.status === "faol");
       const debtors = active.filter(r => r.debt > 0);
       const totalDebt = debtors.reduce((s, r) => s + r.debt, 0);
@@ -296,15 +460,21 @@
 
       const rowsHtml = rentals.length
         ? rentals.map(rentalRowHtml).join("")
-        : '<p class="empty">Hali mijozlar yo\'q. "Yangi mijoz" bo\'limidan qo\'shing.</p>';
+        : `<p class="empty">Hali mijozlar yo'q.<br>"Yangi mijoz" bo'limidan qo'shing.</p>`;
 
       app.innerHTML = `
-        <div class="top">
+        <div class="top fade">
           <div class="greet">Nazorat paneli</div>
-          <div class="sub">${active.length} ta faol ijara</div>
+          <div class="sub">${active.length} ta faol ijara · ${rentals.length} ta jami</div>
         </div>
-        <div class="hero">${heroHtml}</div>
-        <div class="section-title">Mijozlar</div>
+        <div class="hero fade">
+          <div class="label">Umumiy qarz</div>
+          ${heroHtml}
+        </div>
+        <div class="section-title fade">
+          <span>Mijozlar</span>
+          <span class="count">${rentals.length}</span>
+        </div>
         <div class="rlist">${rowsHtml}</div>
       `;
     } catch (e) {
@@ -321,30 +491,33 @@
       statusHtml = fmt(r.debt) + " so'm";
       statusClass = "debt";
     } else {
-      statusHtml = "Qarzi yo'q";
+      statusHtml = "Qarzsiz";
       statusClass = "ok";
     }
 
     const detail = r.status === "kutilmoqda"
       ? `<div class="rrow-detail">
-           <p style="font-size:13px;color:var(--muted);">Mijoz hali botni ishga tushirmagan. Ro'yxatdan o'tish havolasini yuboring:</p>
+           <p style="font-size:13.5px;color:var(--muted);line-height:1.5;">
+             Mijoz hali botni ishga tushirmagan. Quyidagi havolani yuboring:
+           </p>
            <div class="link-box">${esc(r.reg_link)}</div>
-           <button class="copy-btn" onclick="copyLink(event, '${r.reg_link}')">Havolani nusxalash</button>
+           <button class="copy-btn" onclick="copyLink(event, '${esc(r.reg_link)}')">📋 Havolani nusxalash</button>
          </div>`
       : `<div class="rrow-detail">
            <div class="kv"><span>Kunlik narx</span><b>${fmt(r.daily_rate)} so'm</b></div>
-           <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)}</b></div>
+           <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)} so'm</b></div>
+           <div class="kv"><span>To'langan kunlar</span><b>${r.paid_days ?? 0} kun</b></div>
            <div class="kv"><span>Telefon</span><b>${esc(r.phone || "—")}</b></div>
-           <div class="kv"><span>To'lov ${r.debt > 0 ? "muddati o'tgan" : "yopilgan sana"}</span><b>${r.paid_until}</b></div>
+           <div class="kv"><span>${r.debt > 0 ? "To'lov muddati o'tgan" : "To'langan sana"}</span><b>${r.paid_until}</b></div>
            <div class="pay-row">
              <input type="number" inputmode="numeric" placeholder="Summa (so'm)" id="pay-${r.id}">
-             <button onclick="submitPayment(event, ${r.id})">Qabul qilish</button>
+             <button onclick="submitPayment(event, ${r.id})">Qabul</button>
            </div>
          </div>`;
 
     return `
-      <div class="rrow" id="row-${r.id}" onclick="toggleRow(${r.id})">
-        <div class="rrow-top">
+      <div class="rrow fade" id="row-${r.id}">
+        <div class="rrow-top" onclick="toggleRow(${r.id})">
           <div>
             <div class="rrow-name">${esc(r.full_name)}</div>
             <div class="rrow-scooter">${esc(r.scooter_info)}</div>
@@ -357,62 +530,75 @@
   }
 
   function toggleRow(id) {
+    hapticTap();
     document.getElementById("row-" + id).classList.toggle("open");
   }
 
   function copyLink(ev, link) {
     ev.stopPropagation();
     navigator.clipboard?.writeText(link);
-    tg?.HapticFeedback?.notificationOccurred("success");
+    haptic("success");
+    tg?.showPopup?.({
+      title: "Nusxalandi",
+      message: "Havola vaqtinchalik xotiraga ko'chirildi",
+      buttons: [{ type: "ok" }],
+    });
   }
 
   async function submitPayment(ev, rentalId) {
     ev.stopPropagation();
     const input = document.getElementById("pay-" + rentalId);
     const amount = parseFloat(input.value);
-    if (!amount || amount <= 0) return;
+    if (!amount || amount <= 0) {
+      haptic("error");
+      return;
+    }
+    const btn = ev.currentTarget;
+    btn.disabled = true;
     const fd = new FormData();
     fd.append("init_data", initData);
     fd.append("rental_id", rentalId);
     fd.append("amount", amount);
     try {
       await api("/api/admin/payments", { method: "POST", body: fd });
-      tg?.HapticFeedback?.notificationOccurred("success");
+      haptic("success");
       renderDashboard();
     } catch (e) {
+      haptic("error");
       alert(e.message);
+      btn.disabled = false;
     }
   }
 
-  // ---------------- ADMIN: Yangi mijoz ----------------
+  // ---------- Admin: yangi mijoz ----------
   function renderNewClientForm() {
     app.innerHTML = `
-      <div class="top">
+      <div class="top fade">
         <div class="greet">Yangi mijoz</div>
         <div class="sub">Skuter va mijoz ma'lumotlarini kiriting</div>
       </div>
-      <form id="new-form">
+      <form id="new-form" class="fade">
         <div class="field">
           <label>Ism familya</label>
-          <input name="full_name" required>
+          <input name="full_name" required autocomplete="name">
         </div>
         <div class="field">
           <label>Telefon raqami</label>
-          <input name="phone" placeholder="+998 90 123 45 67" required>
+          <input name="phone" placeholder="+998 90 123 45 67" required inputmode="tel">
         </div>
         <div class="field">
           <label>Skuter modeli / raqami</label>
-          <input name="scooter_info" required>
+          <input name="scooter_info" placeholder="Xiaomi Pro 2 · A123BC" required>
         </div>
         <div class="field">
           <label>Kunlik narx (so'm)</label>
-          <input name="daily_rate" type="number" inputmode="numeric" required>
+          <input name="daily_rate" type="number" inputmode="numeric" placeholder="50000" required>
         </div>
         <div class="field">
-          <label>Video ariza</label>
+          <label>Video ariza (ixtiyoriy)</label>
           <input name="video" type="file" accept="video/*" capture="environment">
         </div>
-        <button type="submit" class="submit-btn" id="submit-btn">Qo'shish</button>
+        <button type="submit" class="submit-btn" id="submit-btn">Mijozni qo'shish</button>
       </form>
       <div id="result"></div>
     `;
@@ -428,45 +614,62 @@
     fd.append("init_data", initData);
     try {
       const rental = await api("/api/admin/rentals", { method: "POST", body: fd });
-      tg?.HapticFeedback?.notificationOccurred("success");
+      haptic("success");
       document.getElementById("result").innerHTML = `
-        <p class="notice">✅ ${esc(rental.full_name)} qo'shildi. Havolani yuboring:</p>
+        <div class="hero fade" style="margin-top:20px;">
+          <div class="label">Muvaffaqiyatli</div>
+          <div class="num ok" style="font-size:22px;">${esc(rental.full_name)} qo'shildi</div>
+          <div class="cap">Quyidagi havolani mijozga yuboring:</div>
+        </div>
         <div class="link-box">${esc(rental.reg_link)}</div>
-        <button class="copy-btn" onclick="copyLink(event, '${rental.reg_link}')">Havolani nusxalash</button>
+        <button class="copy-btn" onclick="copyLink(event, '${esc(rental.reg_link)}')">📋 Havolani nusxalash</button>
       `;
       ev.target.reset();
     } catch (e) {
+      haptic("error");
       document.getElementById("result").innerHTML = `<p class="error">${esc(e.message)}</p>`;
     } finally {
       btn.disabled = false;
-      btn.textContent = "Qo'shish";
+      btn.textContent = "Mijozni qo'shish";
     }
   }
 
-  // ---------------- RENTER: o'z kabineti ----------------
+  // ---------- Renter kabineti ----------
   async function renderRenter() {
+    app.innerHTML = `<div class="skel"></div><div class="skel"></div>`;
     try {
       const d = await api("/api/me?init_data=" + encodeURIComponent(initData));
       const hasDebt = d.debt > 0;
+
       const paymentsHtml = d.payments.length
         ? d.payments.map(p => `
-            <div class="payment-item">
+            <div class="payment-item fade">
               <div class="payment-amount">${fmt(p.amount)} so'm</div>
               <div class="payment-meta">${p.date}<br>${p.days_covered} kunga</div>
             </div>`).join("")
-        : '<p class="empty">Hali to\'lov qilinmagan</p>';
+        : `<p class="empty">Hali to'lov qilinmagan</p>`;
 
       app.innerHTML = `
-        <div class="top">
+        <div class="top fade">
           <div class="greet">${esc(d.full_name)}</div>
           <div class="sub">${esc(d.scooter_info)} · ${fmt(d.daily_rate)} so'm/kun</div>
         </div>
-        <div class="hero">
-          <div class="num ${hasDebt ? "debt" : "ok"}">${hasDebt ? fmt(d.debt) + " so'm" : "Qarzingiz yo'q"}</div>
-          <div class="cap">${hasDebt ? d.debt_days + " kundan beri to'lov qilinmagan" : "To'lov " + d.paid_until + " gacha yopilgan"}</div>
+        <div class="hero fade">
+          <div class="label">${hasDebt ? "Sizning qarzingiz" : "Holat"}</div>
+          <div class="num ${hasDebt ? "debt" : "ok"}">
+            ${hasDebt ? fmt(d.debt) + " so'm" : "Qarzingiz yo'q"}
+          </div>
+          <div class="cap">
+            ${hasDebt
+              ? d.debt_days + " kundan beri to'lov qilinmagan"
+              : "To'lov " + d.paid_until + " sanasigacha yopilgan"}
+          </div>
         </div>
-        <div class="section-title">Jami to'langan: ${fmt(d.total_paid)} so'm</div>
-        <div class="rlist">${paymentsHtml}</div>
+        <div class="section-title fade">
+          <span>Jami to'langan</span>
+          <span class="count">${fmt(d.total_paid)} so'm</span>
+        </div>
+        <div>${paymentsHtml}</div>
       `;
     } catch (e) {
       app.innerHTML = `<p class="error">${esc(e.message)}</p>`;

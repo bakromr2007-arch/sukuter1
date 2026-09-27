@@ -8,360 +8,172 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root {
-    --bg: #0e1118;
-    --bg-2: #131822;
-    --surface: #181e29;
-    --surface-2: #1f2735;
-    --line: #2a3342;
-    --line-soft: #222a37;
-    --text: #eef1f6;
-    --muted: #7e8a9c;
-    --muted-2: #5a6577;
-    --amber: #ffb020;
-    --amber-soft: #2a2210;
-    --ok: #34d399;
-    --ok-soft: #0f2a20;
-    --debt: #ff6b6b;
-    --debt-soft: #2a1414;
-    --radius-xl: 26px;
-    --radius-lg: 20px;
-    --radius-md: 14px;
-    --radius-sm: 10px;
-    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    --bg:#0e1118; --bg-2:#131822; --surface:#181e29; --surface-2:#1f2735;
+    --line:#2a3342; --line-soft:#222a37; --text:#eef1f6;
+    --muted:#7e8a9c; --muted-2:#5a6577;
+    --amber:#ffb020; --amber-soft:#2a2210;
+    --ok:#34d399; --ok-soft:#0f2a20;
+    --debt:#ff6b6b; --debt-soft:#2a1414;
+    --blue:#60a5fa; --blue-soft:#152236;
+    --radius-xl:26px; --radius-lg:20px; --radius-md:14px; --radius-sm:10px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    -webkit-font-smoothing: antialiased;
-    overscroll-behavior-y: none;
-  }
-  body {
-    padding: 20px 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    min-height: 100vh;
-    background:
-      radial-gradient(1200px 600px at 50% -20%, rgba(255,176,32,0.06), transparent 60%),
-      var(--bg);
-  }
-  h1, h2, h3, p { margin: 0; }
-  button { font-family: inherit; cursor: pointer; }
-  input { font-family: inherit; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
+    -webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+  body{padding:20px 16px calc(96px + env(safe-area-inset-bottom,0px));min-height:100vh;
+    background:radial-gradient(1200px 600px at 50% -20%,rgba(255,176,32,.06),transparent 60%),var(--bg)}
+  h1,h2,h3,p{margin:0}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit}
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .fade { animation: fadeUp .35s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .fade{animation:fadeUp .35s cubic-bezier(.2,.7,.3,1) both}
 
-  .top { margin-bottom: 22px; }
-  .top .greet {
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  .top .sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .top{margin-bottom:22px}
+  .top .greet{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .top .sub{font-size:14px;color:var(--muted);margin-top:4px}
 
-  .hero {
-    position: relative;
-    background: linear-gradient(155deg, var(--surface-2), var(--surface) 70%);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-xl);
-    padding: 26px 22px;
-    margin-bottom: 22px;
-    overflow: hidden;
-  }
-  .hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(400px 200px at 100% 0%, rgba(255,176,32,0.10), transparent 60%);
-    pointer-events: none;
-  }
-  .hero .label {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--muted-2);
-    font-weight: 600;
-    margin-bottom: 12px;
-  }
-  .hero .num {
-    font-size: 42px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.05;
-  }
-  .hero .num.debt { color: var(--debt); }
-  .hero .num.ok   { color: var(--ok); }
-  .hero .cap { font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .hero{position:relative;background:linear-gradient(155deg,var(--surface-2),var(--surface) 70%);
+    border:1px solid var(--line);border-radius:var(--radius-xl);padding:26px 22px;
+    margin-bottom:22px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(400px 200px at 100% 0%,rgba(255,176,32,.10),transparent 60%);
+    pointer-events:none}
+  .hero .label{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted-2);
+    font-weight:600;margin-bottom:12px}
+  .hero .num{font-size:42px;font-weight:800;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;line-height:1.05}
+  .hero .num.debt{color:var(--debt)} .hero .num.ok{color:var(--ok)}
+  .hero .num.blue{color:var(--blue)}
+  .hero .cap{font-size:14px;color:var(--muted);margin-top:8px}
 
-  .section-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--muted-2);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin: 26px 4px 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .section-title .count {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 100px;
-    padding: 3px 10px;
-    font-size: 11px;
-    color: var(--muted);
-  }
+  .section-title{font-size:13px;font-weight:700;color:var(--muted-2);
+    text-transform:uppercase;letter-spacing:.1em;margin:26px 4px 12px;
+    display:flex;justify-content:space-between;align-items:center}
+  .section-title .count{background:var(--surface);border:1px solid var(--line);
+    border-radius:100px;padding:3px 10px;font-size:11px;color:var(--muted)}
 
-  .rlist { display: flex; flex-direction: column; gap: 10px; }
-  .rrow {
-    background: var(--surface);
-    border: 1px solid var(--line-soft);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-    transition: border-color .2s, background .2s;
-  }
-  .rrow:active { background: var(--surface-2); }
-  .rrow.open { border-color: var(--line); background: var(--surface-2); }
-  .rrow-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-  }
-  .rrow-name { font-weight: 600; font-size: 15.5px; letter-spacing: -0.01em; }
-  .rrow-scooter { font-size: 13px; color: var(--muted); margin-top: 3px; }
-  .rrow-status {
-    font-weight: 700;
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    padding: 5px 12px;
-    border-radius: 100px;
-  }
-  .rrow-status.ok      { color: var(--ok);    background: var(--ok-soft); }
-  .rrow-status.debt    { color: var(--debt);  background: var(--debt-soft); }
-  .rrow-status.pending { color: var(--amber); background: var(--amber-soft); }
+  .rlist{display:flex;flex-direction:column;gap:10px}
+  .rrow{background:var(--surface);border:1px solid var(--line-soft);
+    border-radius:var(--radius-lg);padding:16px 18px;transition:border-color .2s,background .2s}
+  .rrow:active{background:var(--surface-2)}
+  .rrow.open{border-color:var(--line);background:var(--surface-2)}
+  .rrow-top{display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer}
+  .rrow-name{font-weight:600;font-size:15.5px;letter-spacing:-.01em}
+  .rrow-scooter{font-size:13px;color:var(--muted);margin-top:3px}
+  .rrow-status{font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;
+    white-space:nowrap;padding:5px 12px;border-radius:100px}
+  .rrow-status.ok{color:var(--ok);background:var(--ok-soft)}
+  .rrow-status.debt{color:var(--debt);background:var(--debt-soft)}
+  .rrow-status.pending{color:var(--amber);background:var(--amber-soft)}
+  .rrow-status.done{color:var(--muted);background:var(--surface-2)}
 
-  .rrow-detail {
-    display: none;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--line);
-  }
-  .rrow.open .rrow-detail { display: block; animation: fadeUp .25s both; }
+  .rrow-detail{display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+  .rrow.open .rrow-detail{display:block;animation:fadeUp .25s both}
 
-  .kv {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13.5px;
-    padding: 6px 0;
-    color: var(--muted);
-  }
-  .kv b { color: var(--text); font-weight: 600; }
+  .kv{display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;color:var(--muted)}
+  .kv b{color:var(--text);font-weight:600}
 
-  .link-box {
-    background: var(--bg-2);
-    border: 1px solid var(--line-soft);
-    border-radius: var(--radius-sm);
-    padding: 11px 13px;
-    font-size: 12px;
-    color: var(--muted);
-    word-break: break-all;
-    margin-top: 12px;
-    font-family: ui-monospace, monospace;
-  }
-  .copy-btn {
-    margin-top: 8px;
-    width: 100%;
-    padding: 11px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--line);
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
-    transition: background .15s;
-  }
-  .copy-btn:active { background: var(--line); }
+  .link-box{background:var(--bg-2);border:1px solid var(--line-soft);
+    border-radius:var(--radius-sm);padding:11px 13px;font-size:12px;color:var(--muted);
+    word-break:break-all;margin-top:12px;font-family:ui-monospace,monospace}
+  .copy-btn{margin-top:8px;width:100%;padding:11px;border-radius:var(--radius-sm);
+    border:1px solid var(--line);background:var(--surface-2);color:var(--text);
+    font-size:14px;font-weight:600;transition:background .15s}
+  .copy-btn:active{background:var(--line)}
 
-  .pay-row { display: flex; gap: 8px; margin-top: 14px; }
-  .pay-row input {
-    flex: 1;
-    min-width: 0;
-    background: var(--bg-2);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    padding: 12px 14px;
-    font-size: 15px;
-    font-variant-numeric: tabular-nums;
-    outline: none;
-  }
-  .pay-row input:focus { border-color: var(--amber); }
-  .pay-row button {
-    background: var(--amber);
-    color: #1a1300;
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 0 20px;
-    font-weight: 700;
-    font-size: 14px;
-    transition: transform .1s, opacity .15s;
-  }
-  .pay-row button:active { transform: scale(.97); }
-  .pay-row button:disabled { opacity: .5; }
+  .pay-row{display:flex;gap:8px;margin-top:14px}
+  .pay-row input{flex:1;min-width:0;background:var(--bg-2);border:1px solid var(--line);
+    border-radius:var(--radius-sm);color:var(--text);padding:12px 14px;font-size:15px;
+    font-variant-numeric:tabular-nums;outline:none}
+  .pay-row input:focus{border-color:var(--amber)}
+  .pay-row button{background:var(--amber);color:#1a1300;border:none;
+    border-radius:var(--radius-sm);padding:0 20px;font-weight:700;font-size:14px;
+    transition:transform .1s,opacity .15s}
+  .pay-row button:active{transform:scale(.97)}
+  .pay-row button:disabled{opacity:.5}
 
-  .field { margin-bottom: 14px; }
-  .field label {
-    display: block;
-    font-size: 12px;
-    color: var(--muted-2);
-    margin-bottom: 7px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 600;
-  }
-  .field input {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--line-soft);
-    border-radius: var(--radius-md);
-    color: var(--text);
-    padding: 14px 16px;
-    font-size: 15px;
-    outline: none;
-    transition: border-color .15s;
-  }
-  .field input:focus { border-color: var(--amber); }
-  .field input[type="file"] {
-    padding: 12px;
-    font-size: 13px;
-    color: var(--muted);
-  }
-  .submit-btn {
-    width: 100%;
-    padding: 16px;
-    border-radius: var(--radius-md);
-    border: none;
-    background: var(--amber);
-    color: #1a1300;
-    font-size: 16px;
-    font-weight: 700;
-    margin-top: 8px;
-    transition: transform .1s, opacity .15s;
-  }
-  .submit-btn:active { transform: scale(.98); }
-  .submit-btn:disabled { opacity: .5; }
+  .quick-amounts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .quick-btn{background:var(--surface-2);border:1px solid var(--line);
+    color:var(--muted);font-size:12px;font-weight:600;padding:6px 12px;
+    border-radius:100px;transition:all .15s}
+  .quick-btn:active{background:var(--amber);color:#1a1300;border-color:var(--amber)}
 
-  .payment-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 16px;
-    background: var(--surface);
-    border: 1px solid var(--line-soft);
-    border-radius: var(--radius-md);
-    margin-bottom: 8px;
-  }
-  .payment-amount {
-    font-weight: 700;
-    font-size: 15px;
-    font-variant-numeric: tabular-nums;
-  }
-  .payment-meta {
-    font-size: 12px;
-    color: var(--muted);
-    text-align: right;
-    line-height: 1.5;
-  }
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--muted-2);margin-bottom:7px;
+    text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .field input,.field select,.field textarea{width:100%;background:var(--surface);
+    border:1px solid var(--line-soft);border-radius:var(--radius-md);color:var(--text);
+    padding:14px 16px;font-size:15px;outline:none;transition:border-color .15s}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--amber)}
+  .field input[type="file"]{padding:12px;font-size:13px;color:var(--muted)}
+  .field textarea{resize:vertical;min-height:70px}
 
-  .empty, .loading, .error, .notice {
-    color: var(--muted);
-    font-size: 14px;
-    padding: 32px 20px;
-    text-align: center;
-  }
-  .loading::after {
-    content: "";
-    display: inline-block;
-    width: 6px; height: 6px;
-    margin-left: 8px;
-    border-radius: 50%;
-    background: var(--amber);
-    animation: pulse 1s infinite;
-    vertical-align: middle;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: .3; transform: scale(.8); }
-    50% { opacity: 1; transform: scale(1.2); }
-  }
-  .error { color: var(--debt); }
-  .notice { color: var(--ok); padding: 12px 0; text-align: left; }
+  .submit-btn{width:100%;padding:16px;border-radius:var(--radius-md);border:none;
+    background:var(--amber);color:#1a1300;font-size:16px;font-weight:700;
+    margin-top:8px;transition:transform .1s,opacity .15s}
+  .submit-btn:active{transform:scale(.98)}
+  .submit-btn:disabled{opacity:.5}
 
-  .tabbar {
-    position: fixed;
-    left: 12px; right: 12px;
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    display: flex;
-    background: rgba(24, 30, 41, 0.92);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 6px;
-    gap: 6px;
-    z-index: 100;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-  }
-  .tabbar button {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    font-size: 13.5px;
-    font-weight: 600;
-    padding: 12px 0;
-    border-radius: 14px;
-    transition: all .2s;
-  }
-  .tabbar button.active {
-    color: #1a1300;
-    background: var(--amber);
-  }
+  .payment-item{display:flex;justify-content:space-between;align-items:center;
+    padding:14px 16px;background:var(--surface);border:1px solid var(--line-soft);
+    border-radius:var(--radius-md);margin-bottom:8px}
+  .payment-amount{font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+  .payment-meta{font-size:12px;color:var(--muted);text-align:right;line-height:1.5}
 
-  .hidden { display: none !important; }
+  .empty,.loading,.error,.notice{color:var(--muted);font-size:14px;padding:32px 20px;text-align:center}
+  .loading::after{content:"";display:inline-block;width:6px;height:6px;margin-left:8px;
+    border-radius:50%;background:var(--amber);animation:pulse 1s infinite;vertical-align:middle}
+  @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+  .error{color:var(--debt)}
+  .notice{color:var(--ok);padding:12px 0;text-align:left}
 
-  .skel {
-    background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s infinite;
-    border-radius: var(--radius-lg);
-    height: 76px;
-    margin-bottom: 10px;
-  }
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
+  .tabbar{position:fixed;left:12px;right:12px;
+    bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;
+    background:rgba(24,30,41,.92);backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:1px solid var(--line);border-radius:20px;padding:6px;gap:6px;z-index:100;
+    box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .tabbar button{flex:1;background:transparent;border:none;color:var(--muted);
+    font-size:12.5px;font-weight:600;padding:12px 4px;border-radius:14px;transition:all .2s}
+  .tabbar button.active{color:#1a1300;background:var(--amber)}
+
+  .hidden{display:none !important}
+  .skel{background:linear-gradient(90deg,var(--surface) 0%,var(--surface-2) 50%,var(--surface) 100%);
+    background-size:200% 100%;animation:shimmer 1.4s infinite;
+    border-radius:var(--radius-lg);height:76px;margin-bottom:10px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+  .stat-card{background:var(--surface);border:1px solid var(--line-soft);
+    border-radius:var(--radius-md);padding:16px}
+  .stat-card .k{font-size:11px;color:var(--muted-2);text-transform:uppercase;
+    letter-spacing:.1em;font-weight:700;margin-bottom:8px}
+  .stat-card .v{font-size:22px;font-weight:800;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums}
+  .stat-card .v.ok{color:var(--ok)} .stat-card .v.debt{color:var(--debt)}
+  .stat-card .v.amber{color:var(--amber)}
+
+  .progress-wrap{margin-top:12px}
+  .progress-bar{height:6px;background:var(--bg-2);border-radius:100px;overflow:hidden}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--amber),#ff9500);
+    border-radius:100px;transition:width .5s cubic-bezier(.2,.7,.3,1)}
+
+  .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.08em;padding:3px 8px;border-radius:100px;margin-left:6px;vertical-align:middle}
+  .badge.selfie{background:var(--blue-soft);color:var(--blue)}
+  .badge.scooter{background:var(--amber-soft);color:var(--amber)}
 </style>
 </head>
 <body>
   <div id="app">
-    <div class="skel"></div>
-    <div class="skel"></div>
-    <div class="skel"></div>
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div>
   </div>
 
   <div id="tabbar" class="tabbar hidden">
-    <button id="tab-dash" class="active" onclick="showTab('dash')">Nazorat</button>
-    <button id="tab-new" onclick="showTab('new')">Yangi mijoz</button>
+    <button id="tab-dash" class="active" onclick="showTab('dash')">📊 Nazorat</button>
+    <button id="tab-new" onclick="showTab('new')">➕ Yangi mijoz</button>
   </div>
 
 <script>
@@ -375,49 +187,29 @@
   const app = document.getElementById("app");
   const tabbar = document.getElementById("tabbar");
 
-  let currentTab = "dash";
-
   const fmt = n => Math.round(Number(n) || 0).toLocaleString("uz-UZ");
-  const esc = s => {
-    const d = document.createElement("div");
-    d.textContent = s ?? "";
-    return d.innerHTML;
-  };
-
-  function haptic(type = "success") {
-    tg?.HapticFeedback?.notificationOccurred?.(type);
-  }
-  function hapticTap() {
-    tg?.HapticFeedback?.impactOccurred?.("light");
-  }
+  const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
+  const haptic = (t="success") => tg?.HapticFeedback?.notificationOccurred?.(t);
+  const hapticTap = () => tg?.HapticFeedback?.impactOccurred?.("light");
 
   async function api(path, opts = {}) {
     const res = await fetch(path, opts);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || "Xatolik yuz berdi");
+      throw new Error(body.detail || "Xatolik");
     }
     return res.json();
   }
 
-  // ---------- Boot ----------
+  // ================= BOOT =================
   async function boot() {
     if (!initData) {
-      const debug = {
-        telegram_object_bor: !!window.Telegram,
-        webapp_object_bor: !!tg,
-        platform: tg?.platform || null,
-        version: tg?.version || null,
-        url: window.location.href,
-      };
       app.innerHTML = `
         <div class="hero fade">
           <div class="label">Diqqat</div>
-          <div class="num" style="font-size:22px;">Telegram ichida oching</div>
+          <div class="num" style="font-size:22px">Telegram ichida oching</div>
           <div class="cap">Bu sahifa faqat Telegram WebApp orqali ishlaydi.</div>
-        </div>
-        <pre style="font-size:11px;color:var(--muted);white-space:pre-wrap;background:var(--surface);padding:12px;border-radius:12px;margin-top:14px;">${esc(JSON.stringify(debug, null, 2))}</pre>
-      `;
+        </div>`;
       return;
     }
     try {
@@ -433,49 +225,58 @@
     }
   }
 
-  // ---------- Tabs ----------
+  // ================= TABS =================
   function showTab(tab) {
     hapticTap();
-    currentTab = tab;
     document.getElementById("tab-dash").classList.toggle("active", tab === "dash");
     document.getElementById("tab-new").classList.toggle("active", tab === "new");
     if (tab === "dash") renderDashboard();
     else renderNewClientForm();
   }
 
-  // ---------- Admin: dashboard ----------
+  // ================= ADMIN DASHBOARD =================
   async function renderDashboard() {
     app.innerHTML = `<div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
     try {
       const rentals = await api("/api/admin/rentals?init_data=" + encodeURIComponent(initData));
       const active = rentals.filter(r => r.status === "faol");
+      const pending = rentals.filter(r => r.status === "kutilmoqda");
       const debtors = active.filter(r => r.debt > 0);
       const totalDebt = debtors.reduce((s, r) => s + r.debt, 0);
-
-      const heroHtml = debtors.length
-        ? `<div class="num debt">${fmt(totalDebt)} so'm</div>
-           <div class="cap">${debtors.length} ta mijozda qarz bor</div>`
-        : `<div class="num ok">Qarzdorlar yo'q</div>
-           <div class="cap">Barcha mijozlar to'lovlarini yopgan</div>`;
-
-      const rowsHtml = rentals.length
-        ? rentals.map(rentalRowHtml).join("")
-        : `<p class="empty">Hali mijozlar yo'q.<br>"Yangi mijoz" bo'limidan qo'shing.</p>`;
+      const totalRevenue = active.reduce((s, r) => s + r.total_paid, 0);
 
       app.innerHTML = `
         <div class="top fade">
           <div class="greet">Nazorat paneli</div>
-          <div class="sub">${active.length} ta faol ijara · ${rentals.length} ta jami</div>
+          <div class="sub">${active.length} faol · ${pending.length} kutilmoqda · ${rentals.length} jami</div>
         </div>
-        <div class="hero fade">
-          <div class="label">Umumiy qarz</div>
-          ${heroHtml}
+
+        <div class="stat-grid fade">
+          <div class="stat-card">
+            <div class="k">Umumiy qarz</div>
+            <div class="v ${totalDebt > 0 ? 'debt' : 'ok'}">${fmt(totalDebt)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="k">Jami tushum</div>
+            <div class="v amber">${fmt(totalRevenue)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="k">Qarzdorlar</div>
+            <div class="v ${debtors.length ? 'debt' : 'ok'}">${debtors.length}</div>
+          </div>
+          <div class="stat-card">
+            <div class="k">Faol ijaralar</div>
+            <div class="v">${active.length}</div>
+          </div>
         </div>
+
         <div class="section-title fade">
           <span>Mijozlar</span>
           <span class="count">${rentals.length}</span>
         </div>
-        <div class="rlist">${rowsHtml}</div>
+        <div class="rlist">
+          ${rentals.length ? rentals.map(rentalRowHtml).join("") : `<p class="empty">Hali mijozlar yo'q.<br>"Yangi mijoz" bo'limidan qo'shing.</p>`}
+        </div>
       `;
     } catch (e) {
       app.innerHTML = `<p class="error">${esc(e.message)}</p>`;
@@ -484,36 +285,70 @@
 
   function rentalRowHtml(r) {
     let statusHtml, statusClass;
-    if (r.status === "kutilmoqda") {
-      statusHtml = "Kutilmoqda";
-      statusClass = "pending";
-    } else if (r.debt > 0) {
-      statusHtml = fmt(r.debt) + " so'm";
-      statusClass = "debt";
-    } else {
-      statusHtml = "Qarzsiz";
-      statusClass = "ok";
-    }
+    if (r.status === "kutilmoqda") { statusHtml = "⏳ Kutilmoqda"; statusClass = "pending"; }
+    else if (r.status === "tugagan") { statusHtml = "✅ Tugagan"; statusClass = "done"; }
+    else if (r.debt > 0) { statusHtml = "⚠️ " + fmt(r.debt) + " so'm"; statusClass = "debt"; }
+    else { statusHtml = "✅ Qarzsiz"; statusClass = "ok"; }
 
-    const detail = r.status === "kutilmoqda"
-      ? `<div class="rrow-detail">
-           <p style="font-size:13.5px;color:var(--muted);line-height:1.5;">
-             Mijoz hali botni ishga tushirmagan. Quyidagi havolani yuboring:
-           </p>
-           <div class="link-box">${esc(r.reg_link)}</div>
-           <button class="copy-btn" onclick="copyLink(event, '${esc(r.reg_link)}')">📋 Havolani nusxalash</button>
-         </div>`
-      : `<div class="rrow-detail">
-           <div class="kv"><span>Kunlik narx</span><b>${fmt(r.daily_rate)} so'm</b></div>
-           <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)} so'm</b></div>
-           <div class="kv"><span>To'langan kunlar</span><b>${r.paid_days ?? 0} kun</b></div>
-           <div class="kv"><span>Telefon</span><b>${esc(r.phone || "—")}</b></div>
-           <div class="kv"><span>${r.debt > 0 ? "To'lov muddati o'tgan" : "To'langan sana"}</span><b>${r.paid_until}</b></div>
-           <div class="pay-row">
-             <input type="number" inputmode="numeric" placeholder="Summa (so'm)" id="pay-${r.id}">
-             <button onclick="submitPayment(event, ${r.id})">Qabul</button>
-           </div>
-         </div>`;
+    let detail = "";
+    if (r.status === "kutilmoqda") {
+      detail = `
+        <div class="rrow-detail">
+          <p style="font-size:13.5px;color:var(--muted);line-height:1.5">
+            Mijoz hali botni ishga tushirmagan. Quyidagi havolani yuboring:
+          </p>
+          <div class="link-box">${esc(r.reg_link)}</div>
+          <button class="copy-btn" onclick="copyLink(event,'${esc(r.reg_link)}')">📋 Havolani nusxalash</button>
+        </div>`;
+    } else {
+      const progressPct = r.paid_days > 0
+        ? Math.min(100, (r.paid_days / (r.paid_days + r.debt_days || 1)) * 100)
+        : 0;
+
+      const videoBadges = [];
+      if (r.video_selfie) videoBadges.push(`<span class="badge selfie">📹 Selfi</span>`);
+      if (r.video_scooter) videoBadges.push(`<span class="badge scooter">🛴 Skuter</span>`);
+
+      detail = `
+        <div class="rrow-detail">
+          ${videoBadges.length ? `<div style="margin-bottom:10px">${videoBadges.join("")}</div>` : ""}
+          <div class="kv"><span>Telefon</span><b>${esc(r.phone)}</b></div>
+          <div class="kv"><span>Pasport</span><b>${esc(r.passport)}</b></div>
+          <div class="kv"><span>Kunlik narx</span><b>${fmt(r.daily_rate)} so'm</b></div>
+          <div class="kv"><span>To'langan kunlar</span><b>${r.paid_days} kun</b></div>
+          <div class="kv"><span>Jami to'langan</span><b>${fmt(r.total_paid)} so'm</b></div>
+          <div class="kv"><span>${r.debt > 0 ? "Qarz" : "To'langan sana"}</span>
+            <b style="color:${r.debt > 0 ? 'var(--debt)' : 'var(--ok)'}">
+              ${r.debt > 0 ? fmt(r.debt) + " so'm (" + r.debt_days + " kun)" : r.paid_until}
+            </b>
+          </div>
+          ${r.debt === 0 && r.days_left > 0
+            ? `<div class="kv"><span>Yana yetadi</span><b>${r.days_left} kun</b></div>`
+            : ""}
+
+          ${r.paid_days > 0 || r.debt_days > 0 ? `
+          <div class="progress-wrap">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${progressPct}%"></div>
+            </div>
+          </div>` : ""}
+
+          <div class="pay-row">
+            <input type="number" inputmode="numeric" placeholder="Summa (so'm)" id="pay-${r.id}">
+            <button onclick="submitPayment(event,${r.id},${r.daily_rate})">Qabul</button>
+          </div>
+          <div class="quick-amounts">
+            <button class="quick-btn" onclick="quickAmount(${r.id},${r.daily_rate * 1})">1 kun</button>
+            <button class="quick-btn" onclick="quickAmount(${r.id},${r.daily_rate * 7})">1 hafta</button>
+            <button class="quick-btn" onclick="quickAmount(${r.id},${r.daily_rate * 30})">1 oy</button>
+          </div>
+
+          ${r.status === "faol" ? `
+          <button class="copy-btn" style="margin-top:12px;color:var(--debt)"
+            onclick="finishRental(event,${r.id})">🏁 Skuterni qaytarib olish</button>
+          ` : ""}
+        </div>`;
+    }
 
     return `
       <div class="rrow fade" id="row-${r.id}">
@@ -525,34 +360,27 @@
           <div class="rrow-status ${statusClass}">${statusHtml}</div>
         </div>
         ${detail}
-      </div>
-    `;
+      </div>`;
   }
 
-  function toggleRow(id) {
+  function toggleRow(id) { hapticTap(); document.getElementById("row-" + id).classList.toggle("open"); }
+
+  function quickAmount(id, amount) {
     hapticTap();
-    document.getElementById("row-" + id).classList.toggle("open");
+    document.getElementById("pay-" + id).value = Math.round(amount);
   }
 
   function copyLink(ev, link) {
     ev.stopPropagation();
     navigator.clipboard?.writeText(link);
     haptic("success");
-    tg?.showPopup?.({
-      title: "Nusxalandi",
-      message: "Havola vaqtinchalik xotiraga ko'chirildi",
-      buttons: [{ type: "ok" }],
-    });
   }
 
-  async function submitPayment(ev, rentalId) {
+  async function submitPayment(ev, rentalId, dailyRate) {
     ev.stopPropagation();
     const input = document.getElementById("pay-" + rentalId);
     const amount = parseFloat(input.value);
-    if (!amount || amount <= 0) {
-      haptic("error");
-      return;
-    }
+    if (!amount || amount <= 0) { haptic("error"); return; }
     const btn = ev.currentTarget;
     btn.disabled = true;
     const fd = new FormData();
@@ -564,39 +392,69 @@
       haptic("success");
       renderDashboard();
     } catch (e) {
-      haptic("error");
-      alert(e.message);
-      btn.disabled = false;
+      haptic("error"); alert(e.message); btn.disabled = false;
     }
   }
 
-  // ---------- Admin: yangi mijoz ----------
+  async function finishRental(ev, rentalId) {
+    ev.stopPropagation();
+    if (!confirm("Skuterni qaytarib olasizmi? Ijara tugatiladi.")) return;
+    const fd = new FormData();
+    fd.append("init_data", initData);
+    try {
+      await api("/api/admin/rentals/" + rentalId + "/finish", { method: "POST", body: fd });
+      haptic("success");
+      renderDashboard();
+    } catch (e) { haptic("error"); alert(e.message); }
+  }
+
+  // ================= ADMIN NEW CLIENT =================
   function renderNewClientForm() {
     app.innerHTML = `
       <div class="top fade">
         <div class="greet">Yangi mijoz</div>
-        <div class="sub">Skuter va mijoz ma'lumotlarini kiriting</div>
+        <div class="sub">Mijoz va skuter ma'lumotlarini kiriting</div>
       </div>
       <form id="new-form" class="fade">
         <div class="field">
-          <label>Ism familya</label>
-          <input name="full_name" required autocomplete="name">
+          <label>Ism familya *</label>
+          <input name="full_name" required autocomplete="name" placeholder="Ali Valiyev">
         </div>
         <div class="field">
-          <label>Telefon raqami</label>
+          <label>Telefon raqami *</label>
           <input name="phone" placeholder="+998 90 123 45 67" required inputmode="tel">
         </div>
         <div class="field">
-          <label>Skuter modeli / raqami</label>
+          <label>Pasport seriyasi</label>
+          <input name="passport" placeholder="AB1234567">
+        </div>
+        <div class="field">
+          <label>Skuter modeli / raqami *</label>
           <input name="scooter_info" placeholder="Xiaomi Pro 2 · A123BC" required>
         </div>
         <div class="field">
-          <label>Kunlik narx (so'm)</label>
+          <label>Kunlik narx (so'm) *</label>
           <input name="daily_rate" type="number" inputmode="numeric" placeholder="50000" required>
         </div>
         <div class="field">
-          <label>Video ariza (ixtiyoriy)</label>
-          <input name="video" type="file" accept="video/*" capture="environment">
+          <label>To'lov turi</label>
+          <select name="payment_type">
+            <option value="kunlik">Kunlik</option>
+            <option value="haftalik">Haftalik</option>
+            <option value="oylik">Oylik</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>📹 Video ariza — Selfi (yuz + pasport)</label>
+          <input name="video_selfie" type="file" accept="video/*" capture="user">
+        </div>
+        <div class="field">
+          <label>🛴 Video — Skuter holati</label>
+          <input name="video_scooter" type="file" accept="video/*" capture="environment">
+        </div>
+        <div class="field">
+          <label>Qo'shimcha izoh</label>
+          <textarea name="notes" placeholder="Masalan: yashil rang, zaryadlovchi bilan..."></textarea>
         </div>
         <button type="submit" class="submit-btn" id="submit-btn">Mijozni qo'shish</button>
       </form>
@@ -608,38 +466,51 @@
   async function handleNewClient(ev) {
     ev.preventDefault();
     const btn = document.getElementById("submit-btn");
-    btn.disabled = true;
-    btn.textContent = "Yuborilmoqda...";
+    btn.disabled = true; btn.textContent = "Yuborilmoqda...";
     const fd = new FormData(ev.target);
     fd.append("init_data", initData);
     try {
       const rental = await api("/api/admin/rentals", { method: "POST", body: fd });
       haptic("success");
       document.getElementById("result").innerHTML = `
-        <div class="hero fade" style="margin-top:20px;">
+        <div class="hero fade" style="margin-top:20px">
           <div class="label">Muvaffaqiyatli</div>
-          <div class="num ok" style="font-size:22px;">${esc(rental.full_name)} qo'shildi</div>
+          <div class="num ok" style="font-size:22px">${esc(rental.full_name)} qo'shildi</div>
           <div class="cap">Quyidagi havolani mijozga yuboring:</div>
         </div>
         <div class="link-box">${esc(rental.reg_link)}</div>
-        <button class="copy-btn" onclick="copyLink(event, '${esc(rental.reg_link)}')">📋 Havolani nusxalash</button>
-      `;
+        <button class="copy-btn" onclick="copyLink(event,'${esc(rental.reg_link)}')">📋 Havolani nusxalash</button>`;
       ev.target.reset();
     } catch (e) {
       haptic("error");
       document.getElementById("result").innerHTML = `<p class="error">${esc(e.message)}</p>`;
     } finally {
-      btn.disabled = false;
-      btn.textContent = "Mijozni qo'shish";
+      btn.disabled = false; btn.textContent = "Mijozni qo'shish";
     }
   }
 
-  // ---------- Renter kabineti ----------
+  // ================= RENTER KABINETI =================
   async function renderRenter() {
     app.innerHTML = `<div class="skel"></div><div class="skel"></div>`;
     try {
       const d = await api("/api/me?init_data=" + encodeURIComponent(initData));
       const hasDebt = d.debt > 0;
+
+      // Hero
+      let heroLabel, heroNum, heroClass, heroCap;
+      if (hasDebt) {
+        heroLabel = "⚠️ Sizning qarzingiz";
+        heroNum = fmt(d.debt) + " so'm";
+        heroClass = "debt";
+        heroCap = d.debt_days + " kundan beri to'lov qilinmagan";
+      } else {
+        heroLabel = "✅ Holat yaxshi";
+        heroNum = "Qarzingiz yo'q";
+        heroClass = "ok";
+        heroCap = d.days_left > 0
+          ? `To'lov ${d.paid_until} sanasigacha yopilgan · yana ${d.days_left} kun`
+          : `To'lov ${d.paid_until} sanasigacha yopilgan`;
+      }
 
       const paymentsHtml = d.payments.length
         ? d.payments.map(p => `
@@ -654,20 +525,40 @@
           <div class="greet">${esc(d.full_name)}</div>
           <div class="sub">${esc(d.scooter_info)} · ${fmt(d.daily_rate)} so'm/kun</div>
         </div>
+
         <div class="hero fade">
-          <div class="label">${hasDebt ? "Sizning qarzingiz" : "Holat"}</div>
-          <div class="num ${hasDebt ? "debt" : "ok"}">
-            ${hasDebt ? fmt(d.debt) + " so'm" : "Qarzingiz yo'q"}
+          <div class="label">${heroLabel}</div>
+          <div class="num ${heroClass}">${heroNum}</div>
+          <div class="cap">${heroCap}</div>
+        </div>
+
+        <div class="stat-grid fade">
+          <div class="stat-card">
+            <div class="k">Jami to'langan</div>
+            <div class="v amber">${fmt(d.total_paid)}</div>
           </div>
-          <div class="cap">
-            ${hasDebt
-              ? d.debt_days + " kundan beri to'lov qilinmagan"
-              : "To'lov " + d.paid_until + " sanasigacha yopilgan"}
+          <div class="stat-card">
+            <div class="k">To'langan kunlar</div>
+            <div class="v">${d.paid_days} kun</div>
+          </div>
+          ${hasDebt ? `
+          <div class="stat-card">
+            <div class="k">Qarz kunlari</div>
+            <div class="v debt">${d.debt_days} kun</div>
+          </div>` : `
+          <div class="stat-card">
+            <div class="k">Qolgan kunlar</div>
+            <div class="v ok">${d.days_left} kun</div>
+          </div>`}
+          <div class="stat-card">
+            <div class="k">Boshlangan</div>
+            <div class="v" style="font-size:16px">${d.start_date}</div>
           </div>
         </div>
+
         <div class="section-title fade">
-          <span>Jami to'langan</span>
-          <span class="count">${fmt(d.total_paid)} so'm</span>
+          <span>To'lovlar tarixi</span>
+          <span class="count">${d.payments.length}</span>
         </div>
         <div>${paymentsHtml}</div>
       `;
